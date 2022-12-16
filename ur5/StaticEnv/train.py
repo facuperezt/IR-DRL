@@ -115,8 +115,8 @@ if __name__=='__main__':
     features_extractor_class=CustomCombinedExtractor,
     features_extractor_kwargs=dict(features_dim=128),
     )
-    model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log='./models/reach_ppo_tf_logs/')
-    # model = PPO.load('./models/reach_ppo_ckp_logs/reach_49152000_steps', env=env)
+    # model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log='./models/reach_ppo_tf_logs/')
+    model = PPO.load('./models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
     #%%
     model.learn(
         total_timesteps=1e10,

@@ -11,6 +11,7 @@ class CustomCNN(nn.Module):
         super(CustomCNN, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
+        self._x = None
 
         self.cnn = nn.Sequential(
                     nn.Conv2d(in_features, conv_feature_sizes[0], 4, 4),
@@ -27,9 +28,14 @@ class CustomCNN(nn.Module):
         self.linear = nn.Linear(hid_features, out_features)
 
     def forward(self, x):
+        if self._x is not None and self._x.shape == x.shape and self._x.eq(x).all():
+            print(self._x.shape)
+            return x # the whole network is deterministic, doesn't process the frozen frames
+
         x = self.cnn(x)
         # x = x.mean(dim=0, keepdim= True)
         x = self.linear(x)
+        self._x = x
         return x
 
         return self.linear(self.cnn(x).mean(dim=0).flatten())[None]
