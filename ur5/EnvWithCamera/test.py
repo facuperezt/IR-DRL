@@ -17,6 +17,22 @@ import torch.nn.functional as F
 CURRENT_PATH = os.path.abspath(__file__)
 sys.path.insert(0,os.path.dirname(CURRENT_PATH))
 from env import Env
+import glob
+
+def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
+    saves = os.listdir(folder)
+    prev_steps = 0
+    for save in saves:
+        if not save.startswith(prefix): continue
+        save : str
+        candidate, ext = os.path.splitext(save)
+        steps = int(candidate.split('_')[-2])
+        if steps > prev_steps:
+            chosen_file = candidate
+            chosen_ext = ext
+            prev_steps = steps
+
+    return f'{folder}/{chosen_file}'
 
 params = {
     'is_render': True, 
@@ -34,9 +50,10 @@ params = {
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
-        'placement' : 'top',
+        'placement' : 'ring',
         'type' : 'grayscale',
         'prev_pos' : 0,
+        'visualize' : True,
     },
     'debug' : False,
 }
@@ -63,7 +80,7 @@ if __name__=='__main__':
         debug=params['debug'],
         )
     # load drl model
-    model = PPO.load('./models/reach_ppo_ckp_logs/up_top_reach_1024000_steps', env=env)
+    model = PPO.load(get_last_save(), env=env)
     # model = PPO.load('./ur5/StaticEnv/models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
 
     while True:

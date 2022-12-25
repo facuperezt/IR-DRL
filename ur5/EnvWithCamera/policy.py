@@ -7,7 +7,7 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 class CustomFeatureExtractor(nn.Module):
 
-    def __init__(self, in_features, conv_feature_sizes, out_features, h, w):
+    def __init__(self, in_features, conv_feature_sizes, out_features, w, h):
         super(CustomFeatureExtractor, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -31,7 +31,6 @@ class CustomFeatureExtractor(nn.Module):
         if self._x is not None and self._x.shape == x.shape and self._x.eq(x).all():
             print(self._x.shape)
             return x # the whole network is deterministic, doesn't process the frozen frames
-
         x = self.cnn(x)
         # x = x.mean(dim=0, keepdim= True)
         x = self.linear(x)
@@ -71,7 +70,7 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
             if key == "image":
                 # We will just downsample one channel of the image by 4x4 and flatten.
                 # Assume the image is single-channel (subspace.shape[0] == 0)
-                extractors[key] = CustomFeatureExtractor(subspace.shape[0], cnn_dims, 24, subspace.shape[1], subspace.shape[2])
+                extractors[key] = CustomFeatureExtractor(subspace.shape[0], cnn_dims, 24, subspace.shape[2], subspace.shape[1])
                 total_concat_size += 24
             else:
                 # Flatten it

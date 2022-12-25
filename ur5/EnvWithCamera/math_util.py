@@ -143,3 +143,10 @@ def directionalVectorsFromQuaternion(quaternion: Union[List, torch.Tensor], scal
         left_vector = torch.tensor(left_vector)
 
     return up_vector, forward_vector, left_vector
+
+
+def add_list(a: List, b: List, factor: int = 1) -> List:
+    """
+    adds lists "a" and "b" as vectors, "factor" is multiplied by b
+    """
+    return (np.array(a) + factor * np.array(b)).tolist()

@@ -22,6 +22,20 @@ CURRENT_PATH = os.path.abspath(__file__)
 sys.path.insert(0,os.path.dirname(CURRENT_PATH))
 from env import Env
 
+def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
+    saves = os.listdir(folder)
+    prev_steps = 0
+    for save in saves:
+        save : str
+        candidate, ext = os.path.splitext(save)
+        steps = int(candidate.split('_')[-2])
+        if steps > prev_steps:
+            chosen_file = candidate
+            chosen_ext = ext
+            prev_steps = steps
+
+    return f'{folder}/{chosen_file}'
+
 params = {
     'is_render': False, 
     'is_good_view': False,
@@ -38,9 +52,10 @@ params = {
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
-        'placement' : 'top',
-        'type' : 'grayscale',
+        'placement' : 'ring',
+        'type' : 'rgbd',
         'prev_pos' : 0,
+        'visualize' : False,
     },
     'debug' : False,
 }
@@ -99,21 +114,27 @@ if __name__=='__main__':
         obstacle_box_size=params['obstacle_box_size'],
         obstacle_sphere_radius=params['obstacle_sphere_radius'],
         camera_args=params['camera_args'],
+        # camera_args={
+        #     'placement' : 'ring',
+        #     'type' : 'rgbd',
+        #     'position' : 0,
+        #     'visualize' : False,
+        # },
         debug=params['debug'],
         )
     eval_env = Monitor(eval_env)
     # load env
-    env = SubprocVecEnv([make_env(i) for i in range(1)])
+    env = SubprocVecEnv([make_env(i) for i in range(8)])
     # Stops training when the model reaches the maximum number of episodes
     callback_max_episodes = StopTrainingOnMaxEpisodes(max_episodes=1e8, verbose=1)
 
     # Use deterministic actions for evaluation
-    eval_callback = EvalCallback(eval_env, best_model_save_path=f'./models/best_reach_ppo/{params["camera_type"]}',
+    eval_callback = EvalCallback(eval_env, best_model_save_path=f'./models/best_reach_ppo/{params["camera_args"]["type"]}',
                        log_path='./models/best_reach_ppo/', eval_freq=10000,
                        deterministic=True, render=False)
     
     # Save a checkpoint every ? steps
-    checkpoint_callback = CheckpointCallback(save_freq=51200, save_path='./models/reach_ppo_ckp_logs/',
+    checkpoint_callback = CheckpointCallback(save_freq=51200, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}',
                                         name_prefix='reach')
     # Create the callback list
     callback = CallbackList([checkpoint_callback, callback_max_episodes, eval_callback])
@@ -123,12 +144,14 @@ if __name__=='__main__':
     features_extractor_kwargs=dict(features_dim=128, cnn_dims= [8,16]),
     )
     model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}')
+    # model.load(get_last_save())
     # model = PPO.load('./models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
-    #%%
+
     model.learn(
         total_timesteps=1e10,
         n_eval_episodes=64,
-        callback=callback,)
+        callback=callback,
+        reset_num_timesteps=False)
     model.save('./models/reach_ppo')
 
 # %%

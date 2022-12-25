@@ -19,8 +19,7 @@ BASE = os.path.dirname(os.path.dirname(CURRENT_PATH))
 ROOT = os.path.dirname(BASE) 
 sys.path.insert(0,os.path.dirname(CURRENT_PATH))
 from pybullet_util import MotionExecute
-from math_util import quaternion_matrix, euler_from_matrix, euler_from_quaternion
-from utils import directionalVectorsFromQuaternion
+from math_util import quaternion_matrix, euler_from_matrix, euler_from_quaternion, directionalVectorsFromQuaternion
 from rays_to_indicator import RaysCauculator
 
 
@@ -42,7 +41,8 @@ class Env(gym.Env):
         prob_obstacles: float = 0.8,
         obstacle_box_size: list = [0.04,0.04,0.002],
         obstacle_sphere_radius: float = 0.04,
-        camera_at_robot: bool = False,
+        camera_placement: str = 'tip', # tip, top or ring
+        camera_type: str = 'grayscale',
         debug: bool = False,
         ):
         '''
@@ -55,7 +55,15 @@ class Env(gym.Env):
         self.is_train = is_train
         self.DISPLAY_BOUNDARY = show_boundary
         self.extra_obst = add_moving_obstacle
-        self.camera_at_robot = camera_at_robot # camera at robot
+        self.camera_args = {
+            'camera_placement' : camera_placement,
+            'camera_type' : camera_type,
+            'prev_camera_pos' : 0,
+            'debug' : debug, 
+        }
+        self.camera_placement = camera_placement # where camera
+        self.camera_type = camera_type
+        self.prev_camera_pos = 0
         self.debug = debug
         if self.is_render:
             self.physicsClient = p.connect(p.GUI)
@@ -81,7 +89,7 @@ class Env(gym.Env):
         self.moving_obstacle_speed = moving_obstacle_speed
         # action sapce
         self.action = None
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(6,), dtype=np.float32) # angular velocities
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(6,), dtype=np.float32) # angular velocities, camera velocity
         
         # parameters for spatial infomation
         self.home = [0, np.pi/2, -np.pi/6, -2*np.pi/3, -4*np.pi/9, np.pi/2, 0.0]
@@ -99,10 +107,15 @@ class Env(gym.Env):
         self.state = np.zeros((14,), dtype=np.float32)
         self.obs_rays = np.zeros(shape=(129,),dtype=np.float32)
         self.indicator = np.zeros((10,), dtype=np.int8)
+        nr_channels = {
+            'grayscale' : 1,
+            'rgb' : 3,
+            'rgbd' : 4,
+        }
         obs_spaces = {
             'position': spaces.Box(low=-2, high=2, shape=(14,), dtype=np.float32),
             'indicator': spaces.Box(low=0, high=2, shape=(10,), dtype=np.int8),
-            'image': spaces.Box(low=0, high= 255, shape=(1,128,128,), dtype=np.uint8),
+            'image': spaces.Box(low=0, high= 255, shape=(nr_channels[self.camera_type],128,128,), dtype=np.uint8),
         } 
         self.observation_space=spaces.Dict(obs_spaces)
         
@@ -145,26 +158,39 @@ class Env(gym.Env):
         self.episode_interval = 50
         self.success_counter = 0
 
-    def _set_grayscale_camera(self, width, height, camera_id= 0, visualize_camera= True, on_body= False):
+    def _set_camera(self, width, height, camera_id= 0, visualize_camera= True, on_body= False, camera_vel= 0):
+        kind = self.camera_type
         if self.cameras.get(camera_id, None) is not None:
-            # p.removeBody(self.cameras[camera_id])
-            p.removeUserDebugItem(self.cameras.get(camera_id))
+            p.removeBody(self.cameras[camera_id][0])
+            p.removeUserDebugItem(self.cameras.get(camera_id)[1])
 
-        if self.camera_at_robot:
+        if self.camera_args['camera_placement'] == 'tip':
+            print('tip')
             position = self.current_pos
             orientation = self.current_orn
             up_vector, forward_vector, _ = directionalVectorsFromQuaternion(orientation)
             target = [p.readUserDebugParameter(self.X), p.readUserDebugParameter(self.Y), p.readUserDebugParameter(self.Z)] if self.debug else [p+v for p,v in zip(position, forward_vector)]
+            fov = 120
             if on_body:
                 position, body_orientation = p.getLinkState(self.RobotUid, self.effector_link - 1)[4:6]
                 body_forward_vector, body_up_vector, _ = directionalVectorsFromQuaternion(body_orientation, scale= 0.05)
                 position = [p+u+f for p,u,f in zip(position, body_up_vector, body_forward_vector)]
 
-        else:
+        elif self.camera_args['camera_placement'] == 'top':
+            print('top')
             position = [0, 0.5, 1]
             up_vector = [0, 1, 0]
             target = [0, 0.5, 0.3]
+            fov = 60
 
+        elif self.camera_args['camera_placement'] == 'ring':
+            print('ring')
+            position = self.camera_args['prev_camera_pos'] + 2*np.pi * camera_vel
+            target = [0, 0.5, 0.3]
+            fov = 60
+
+        print(self.camera_args)
+        self.camera_args['prev_camera_pos'] = position
         viewMatrix = p.computeViewMatrix(
             cameraTargetPosition=target,
             cameraEyePosition= position,
@@ -181,7 +207,7 @@ class Env(gym.Env):
             # bottom=self.z_low_obs,
             # nearVal=self.y_high_obs,
             # farVal=self.y_low_obs,
-            fov= p.readUserDebugParameter(self.FOV) if self.debug else 120,
+            fov= p.readUserDebugParameter(self.FOV) if self.debug else fov,
             aspect=aspect,
             nearVal= 0.01,
             farVal= 1.0,
@@ -190,28 +216,35 @@ class Env(gym.Env):
         if visualize_camera:
             shift = [0, -0.02, 0]
             meshScale = [0.1, 0.1, 0.1]
-            # obst_id = p.createMultiBody(
-            #         baseMass=0,
-            #         baseVisualShapeIndex=self._create_visual_duck(shift, meshScale),
-            #         #baseCollisionShapeIndex=self._create_collision_duck(shift, meshScale),
-            #         basePosition=position,
-            #         baseOrientation=p.getQuaternionFromAxisAngle([0, -1, 0], 90),
-            #         useMaximalCoordinates=True, # supposedly makes things run faster
-            #     )
+            obst_id_duck = p.createMultiBody(
+                    baseMass=0,
+                    baseVisualShapeIndex=self._create_visual_duck(shift, meshScale),
+                    #baseCollisionShapeIndex=self._create_collision_duck(shift, meshScale),
+                    basePosition=position,
+                    baseOrientation=p.getQuaternionFromAxisAngle([0, -1, 0], 90),
+                    useMaximalCoordinates=True, # supposedly makes things run faster
+                )
             obst_id = p.addUserDebugLine(position,target)
-            self.cameras[camera_id] = obst_id
+            self.cameras[camera_id] = [obst_id_duck, obst_id]
 
-        def _set_camera_inner(width= width, height= height): # TODO           
-            _, _, rgba, _, _ = p.getCameraImage(
+        def _set_camera_inner(): # TODO           
+            _, _, rgba, depth, _ = p.getCameraImage(
                 width= width,
                 height= height,
                 viewMatrix= viewMatrix,
                 projectionMatrix= projectionMatrix,
             )
+            if kind == 'grayscale':
+                r, g, b, a = rgba[:,:,0], rgba[:,:,1], rgba[:,:,2], rgba[:,:,3]/255
+                image = (0.2989 * r + 0.5870 * g + 0.1140 * b)*a
+                image = image[None]
+            if kind == 'rgb':
+                image = rgba[:, :, :3]
+            if kind == 'rgbd':
+                image = rgba.copy()
+                image[:, :, 3] = depth
 
-            r, g, b, a = rgba[:,:,0], rgba[:,:,1], rgba[:,:,2], rgba[:,:,3]/255
-            image = (0.2989 * r + 0.5870 * g + 0.1140 * b)*a
-            return image[None]
+            return image
 
         
         return _set_camera_inner
@@ -410,7 +443,7 @@ class Env(gym.Env):
             self.obs_rays[i] = ray[2]
         rc = RaysCauculator(self.obs_rays)
         self.indicator = rc.get_indicator()
-        self.camera = self._set_grayscale_camera(self.observation_space['image'].shape[2], self.observation_space['image'].shape[1])
+        self.camera = self._set_camera(self.observation_space['image'].shape[2], self.observation_space['image'].shape[1])
         self.image = self.camera()
         
             
@@ -453,6 +486,7 @@ class Env(gym.Env):
         droll= action[3]*dv
         dpitch = action[4]*dv
         dyaw = action[5]*dv
+        camera_vel = 0#action[6]*dv
 
         self.current_pos = p.getLinkState(self.RobotUid,self.effector_link)[4]
         self.current_orn = p.getLinkState(self.RobotUid,self.effector_link)[5]
@@ -494,11 +528,15 @@ class Env(gym.Env):
         # print (self.obs_rays)
         rc = RaysCauculator(self.obs_rays)
         self.indicator = rc.get_indicator()
-        if not self.step_counter % 10 and self.camera_at_robot:
-            self.camera = self._set_grayscale_camera(self.observation_space['image'].shape[2], self.observation_space['image'].shape[1])
-            self.image = self.camera()
-        elif not self.camera_at_robot:
-            self.image = self.camera()
+        if not self.step_counter % 10:
+            if self.camera_args['camera_placement'] == 'tip':
+                self.camera = self._set_camera(self.observation_space['image'].shape[2], self.observation_space['image'].shape[1])
+                self.image = self.camera()
+            elif self.camera_args['camera_placement'] == 'top':
+                self.image = self.camera()
+            elif self.camera_args['camera_placement'] == 'ring':
+                raise NotImplementedError(':(')
+                self.camera = self._set_camera(self.observation_space['image'].shape[2], self.observation_space['image'].shape[1], camera_vel= camera_vel)
             
         # check collision
         for i in range(len(self.obsts)):

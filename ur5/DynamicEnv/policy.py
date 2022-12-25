@@ -5,10 +5,10 @@ from torch import nn
 
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
-class CustomFeatureExtractor(nn.Module):
+class CustomCNN(nn.Module):
 
     def __init__(self, in_features, conv_feature_sizes, out_features, h, w):
-        super(CustomFeatureExtractor, self).__init__()
+        super(CustomCNN, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self._x = None
@@ -51,16 +51,11 @@ class DummyBatchFlatten(nn.Module):
 
 
 class CustomCombinedExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Dict, features_dim= 1, cnn_dims= None):
+    def __init__(self, observation_space: gym.spaces.Dict, features_dim= 1):
         # We do not know features-dim here before going over all the items,
         # so put something dummy for now. PyTorch requires calling
         # nn.Module.__init__ before adding modules
         super(CustomCombinedExtractor, self).__init__(observation_space, features_dim=1)
-
-        if cnn_dims is None:
-            cnn_dims = [8, 16]
-        else:
-            assert type(cnn_dims) is list and len(cnn_dims) == 2, 'cnn_dims has to be a list of len 2'
 
         extractors = {}
 
@@ -71,7 +66,7 @@ class CustomCombinedExtractor(BaseFeaturesExtractor):
             if key == "image":
                 # We will just downsample one channel of the image by 4x4 and flatten.
                 # Assume the image is single-channel (subspace.shape[0] == 0)
-                extractors[key] = CustomFeatureExtractor(subspace.shape[0], cnn_dims, 24, subspace.shape[1], subspace.shape[2])
+                extractors[key] = CustomCNN(1, [8, 16], 24, subspace.shape[1], subspace.shape[2])
                 total_concat_size += 24
             else:
                 # Flatten it
