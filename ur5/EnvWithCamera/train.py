@@ -17,6 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import tensorboard
 from policy import CustomCombinedExtractor
+import argparse
 
 CURRENT_PATH = os.path.abspath(__file__)
 sys.path.insert(0,os.path.dirname(CURRENT_PATH))
@@ -60,6 +61,12 @@ params = {
     'debug' : False,
 }
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='EnvWithCamera')
+    parser.add_argument('--cnn_dims', nargs=2, type=int, default=[8,16])
+
+    return parser.parse_args()
+
 def make_env(rank: int, seed: int = 0) -> Callable:
     """
     Utility function for multiprocessed env.
@@ -97,6 +104,8 @@ def make_env(rank: int, seed: int = 0) -> Callable:
 
 if __name__=='__main__':
     
+    args = parse_args()
+
     # Separate evaluation env
     eval_env = Env(
         is_render=params['is_render'],
@@ -141,7 +150,7 @@ if __name__=='__main__':
 
     policy_kwargs = dict(
     features_extractor_class=CustomCombinedExtractor,
-    features_extractor_kwargs=dict(features_dim=128, cnn_dims= [8,16]),
+    features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
     )
     model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}')
     # model.load(get_last_save())
