@@ -88,7 +88,7 @@ class Env(gym.Env):
         self.moving_obstacle_speed = moving_obstacle_speed
         # action sapce
         self.action = None
-        action_space_shape = 6
+        action_space_shape = 7
         if self.camera_args['placement'].startswith('ring'):
             action_space_shape = 7
             self.ringbahn = CameraRail(self.x_low_obs, self.x_high_obs, self.y_low_obs, self.y_high_obs, 1, 0)
@@ -170,15 +170,9 @@ class Env(gym.Env):
             p.removeUserDebugItem(self.cameras.get(camera_id))
 
         if self.camera_args['placement'] == 'tip':
-            position = self.current_pos
-            orientation = self.current_orn
-            up_vector, forward_vector, _ = directionalVectorsFromQuaternion(orientation)
-            target = [p.readUserDebugParameter(self.X), p.readUserDebugParameter(self.Y), p.readUserDebugParameter(self.Z)] if self.debug else [p+v for p,v in zip(position, forward_vector)]
+            up_vector, forward_vector, _ = directionalVectorsFromQuaternion(self.current_orn)
+            target = [p+v for p,v in zip(self.current_pos, forward_vector)] if not self.debug else [p.readUserDebugParameter(self.X), p.readUserDebugParameter(self.Y), p.readUserDebugParameter(self.Z)] 
             fov = 120
-            if on_body:
-                position, body_orientation = p.getLinkState(self.RobotUid, self.effector_link - 1)[4:6]
-                body_forward_vector, body_up_vector, _ = directionalVectorsFromQuaternion(body_orientation, scale= 0.05)
-                position = [p+u+f for p,u,f in zip(position, body_up_vector, body_forward_vector)]
 
         elif self.camera_args['placement'] == 'top':
             position = [0, 0.5, 1]
@@ -191,6 +185,13 @@ class Env(gym.Env):
             up_vector = add_list([0, 0.5, 1], position)
             target = [0, 0.5, 0.3]
             fov = 60
+        elif self.camera_args['placement'] == 'body':
+            position, body_orientation = p.getLinkState(self.RobotUid, self.effector_link - 1)[4:6]
+            up_vector, effector_forward_vector, _ = directionalVectorsFromQuaternion(self.current_orn)
+            target = [p+v for p,v in zip(self.current_pos, effector_forward_vector)]
+            body_forward_vector, body_up_vector, _ = directionalVectorsFromQuaternion(body_orientation, scale= 0.075)
+            position = [p+u+f for p,u,f in zip(position, body_up_vector, body_forward_vector)]
+            fov = 100
 
         self.camera_args['prev_pos'] = position
         viewMatrix = p.computeViewMatrix(
@@ -531,7 +532,7 @@ class Env(gym.Env):
         rc = RaysCauculator(self.obs_rays)
         self.indicator = rc.get_indicator()
         if not self.step_counter % 1:
-            if self.camera_args['placement'] == 'tip':
+            if self.camera_args['placement'] in ['tip', 'body']:
                 self.camera = self._set_camera(self.observation_space['image'].shape[1], self.observation_space['image'].shape[0])
                 self.image = self.camera()
             elif self.camera_args['placement'] == 'top':
@@ -627,8 +628,8 @@ class Env(gym.Env):
             self.past_distance.popleft()            
         self.state[13] = self.distance
         return{
-            'position': self.state,
-            'indicator': self.indicator,
+            'position': self.state,#np.zeros_like(self.state),#
+            'indicator': self.indicator,#np.zeros_like(self.indicator),#
             'image': self.image,
         }
     

@@ -50,8 +50,8 @@ params = {
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
-        'placement' : 'ring',
-        'type' : 'grayscale',
+        'placement' : 'body',
+        'type' : 'rgbd',
         'prev_pos' : 0,
         'visualize' : True,
     },
@@ -80,9 +80,9 @@ if __name__=='__main__':
         debug=params['debug'],
         )
     # load drl model
-    model = PPO.load(get_last_save(), env=env)
-    # model = PPO.load('./ur5/StaticEnv/models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
-
+    # model = PPO.load(get_last_save(), env=env)
+    model = PPO.load('../../from_server/models/reach_ppo_ckp_logs/rgbd/reach_66355200_steps.zip', env=env)
+    # model = PPO.load('../../from_server/models/best_reach_ppo/rgbd/best_model.zip', env=env)
     while True:
         done = False
         obs = env.reset()

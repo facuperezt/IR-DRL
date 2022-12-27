@@ -153,6 +153,7 @@ if __name__=='__main__':
     features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
     )
     model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}')
+    assert next(model.get_parameters()).is_cuda, 'Model not in GPU'
     # model.load(get_last_save())
     # model = PPO.load('./models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
 
