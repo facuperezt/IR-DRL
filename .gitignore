@@ -5,7 +5,7 @@
 
 ### Models ###
 models/
-
+models_on_body/
 ### Django ###
 *.log
 *.pot

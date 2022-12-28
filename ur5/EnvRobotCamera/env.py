@@ -23,7 +23,7 @@ from math_util import quaternion_matrix, euler_from_matrix, euler_from_quaternio
 from rays_to_indicator import RaysCauculator
 from typing import Dict
 
-from camera_functions import CameraRail
+from camera_functions import CameraRail, CameraRobot
 
 
 
@@ -45,7 +45,7 @@ class Env(gym.Env):
         obstacle_box_size: list = [0.04,0.04,0.002],
         obstacle_sphere_radius: float = 0.04,
         camera_args: Dict[str, int] = {
-            'placement' : 'ring', # tip, top, ring, ring_obs
+            'placement' : 'duo', # tip, top, ring, ring_obs
             'type' : 'grayscale',
             'prev_pos' : 0,
             'visualize' : False,
@@ -92,7 +92,7 @@ class Env(gym.Env):
         # action sapce
         self.action = None
         action_space_shape = 7
-        if self.camera_args['placement'].startswith('ring'):
+        if self.camera_args['placement'].startswith('ring') or self.camera_args['placement'] in ['duo']:
             action_space_shape = 7
             self.ringbahn = CameraRail(self.x_low_obs, self.x_high_obs, self.y_low_obs, self.y_high_obs, 1, 0)
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(action_space_shape,), dtype=np.float32) # angular velocities, camera velocity
@@ -169,95 +169,9 @@ class Env(gym.Env):
         self.episode_interval = 50
         self.success_counter = 0
 
-    def _set_camera(self, width, height, camera_id= 0, on_body= False, camera_vel= 0):
-        kind = self.camera_args['type']
-        if self.cameras.get(camera_id, None) is not None:
-            # p.removeBody(self.cameras[camera_id][0])
-            p.removeUserDebugItem(self.cameras.get(camera_id))
+        self.base_position = np.array([0,0,0])
 
-        if self.camera_args['placement'] == 'tip':
-            up_vector, forward_vector, _ = directionalVectorsFromQuaternion(self.current_orn)
-            target = [p+v for p,v in zip(self.current_pos, forward_vector)] if not self.debug else [p.readUserDebugParameter(self.X), p.readUserDebugParameter(self.Y), p.readUserDebugParameter(self.Z)] 
-            fov = 120
-
-        elif self.camera_args['placement'] == 'top':
-            position = [0, 0.5, 1]
-            up_vector = [0, 1, 0]
-            target = [0, 0.5, 0.3]
-            fov = 60
-
-        elif self.camera_args['placement'].startswith('ring'):
-            position = self.ringbahn.get_coords(self.ringbahn.phi + 2*np.pi * camera_vel)
-            up_vector = add_list([0, 0.5, 1], position)
-            target = [0, 0.5, 0.3]
-            fov = 60
-        elif self.camera_args['placement'] == 'body':
-            position, body_orientation = p.getLinkState(self.RobotUid, self.effector_link - 1)[4:6]
-            up_vector, effector_forward_vector, _ = directionalVectorsFromQuaternion(self.current_orn)
-            target = [p+v for p,v in zip(self.current_pos, effector_forward_vector)]
-            body_forward_vector, body_up_vector, _ = directionalVectorsFromQuaternion(body_orientation, scale= 0.075)
-            position = [p+u+f for p,u,f in zip(position, body_up_vector, body_forward_vector)]
-            fov = 100
-
-        self.camera_args['prev_pos'] = position
-        viewMatrix = p.computeViewMatrix(
-            cameraTargetPosition=target,
-            cameraEyePosition= position,
-            cameraUpVector= up_vector,
-            )
-
-        w = self.x_high_obs - self.x_low_obs
-        h = self.y_high_obs - self.y_low_obs
-        aspect = round(w/h, 4)
-        projectionMatrix = p.computeProjectionMatrixFOV(
-            # left=self.x_low_obs,
-            # right=self.x_high_obs,
-            # top=self.z_high_obs,
-            # bottom=self.z_low_obs,
-            # nearVal=self.y_high_obs,
-            # farVal=self.y_low_obs,
-            fov= p.readUserDebugParameter(self.FOV) if self.debug else fov,
-            aspect=aspect,
-            nearVal= 0.01,
-            farVal= 1.0,
-            )
-
-        if self.camera_args['visualize']:
-            shift = [0, -0.02, 0]
-            meshScale = [0.1, 0.1, 0.1]
-            # obst_id_duck = p.createMultiBody(
-            #         baseMass=0,
-            #         baseVisualShapeIndex=self._create_visual_duck(shift, meshScale),
-            #         #baseCollisionShapeIndex=self._create_collision_duck(shift, meshScale),
-            #         basePosition=position,
-            #         baseOrientation=p.getQuaternionFromAxisAngle([0, -1, 0], 90),
-            #         useMaximalCoordinates=True, # supposedly makes things run faster
-            #     )
-            obst_id = p.addUserDebugLine(position,target)
-            self.cameras[camera_id] = obst_id
-
-        def _set_camera_inner(): # TODO           
-            _, _, rgba, depth, _ = p.getCameraImage(
-                width= width,
-                height= height,
-                viewMatrix= viewMatrix,
-                projectionMatrix= projectionMatrix,
-            )
-            if kind == 'grayscale':
-                r, g, b, a = rgba[:,:,0], rgba[:,:,1], rgba[:,:,2], rgba[:,:,3]/255
-                image = (0.2989 * r + 0.5870 * g + 0.1140 * b)*a
-                image = image[None]
-            if kind in ['rgb']:
-                image = rgba.copy()[:, :, :3]
-            if kind == 'rgbd':
-                image = rgba.copy()
-                image[:, :, 3] = depth
-
-
-            return image
-
-        
-        return _set_camera_inner
+        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([1,1, 0]), self.high_obs - self.low_obs)
         
     
     def _set_home(self):
@@ -436,7 +350,8 @@ class Env(gym.Env):
         
         # load the robot arm
         baseorn = p.getQuaternionFromEuler([0,0,0])
-        self.RobotUid = p.loadURDF(self.urdf_root_path, basePosition=[0.0,-0.12,0.5], baseOrientation=baseorn, useFixedBase=True)
+        self.base_position = [0.0,-0.12,0.5]
+        self.RobotUid = p.loadURDF(self.urdf_root_path, basePosition=self.base_position, baseOrientation=baseorn, useFixedBase=True)
         self.motionexec = MotionExecute(self.RobotUid, self.base_link, self.effector_link)
         # robot goes to the initial position
         self.motionexec.go_to_target(self.init_home, self.init_orn)
