@@ -22,6 +22,7 @@ from pybullet_util import MotionExecute
 from math_util import quaternion_matrix, euler_from_matrix, euler_from_quaternion, directionalVectorsFromQuaternion, add_list
 from rays_to_indicator import RaysCauculator
 from typing import Dict
+import tensorboard
 
 from camera_functions import CameraRail, CameraRobot
 
@@ -91,10 +92,9 @@ class Env(gym.Env):
         self.moving_obstacle_speed = moving_obstacle_speed
         # action sapce
         self.action = None
-        action_space_shape = 7
-        if self.camera_args['placement'].startswith('ring') or self.camera_args['placement'] in ['duo']:
+        action_space_shape = 6
+        if self.camera_args['placement'] in ['duo']:
             action_space_shape = 7
-            self.ringbahn = CameraRail(self.x_low_obs, self.x_high_obs, self.y_low_obs, self.y_high_obs, 1, 0)
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(action_space_shape,), dtype=np.float32) # angular velocities, camera velocity
         
         # parameters for spatial infomation
@@ -122,12 +122,6 @@ class Env(gym.Env):
             'position': spaces.Box(low=-2, high=2, shape=(14,), dtype=np.float32),
             'image': spaces.Box(low=0, high= 255, shape=(128,128,nr_channels[self.camera_args['type']],), dtype=np.uint8),
         }
-        if self.camera_args['placement'] not in ['duo', 'ring', 'ring_obs']:
-            obs_spaces.__setattr__('indicator', spaces.Box(low=0, high=2, shape=(10,), dtype=np.int8))
-        else:
-            obs_spaces.__setattr__('camera_position', spaces.Box(low=-3, high= 3, shape=(3,), dtype=np.float16))
-        if self.camera_args['placement'] in ['ring_obs']:
-            obs_spaces.__setattr__('camera_pos', spaces.Box(low=-np.pi, high=np.pi, shape=(1,), dtype=np.float16))
         self.observation_space=spaces.Dict(obs_spaces)
         
 
@@ -171,7 +165,6 @@ class Env(gym.Env):
 
         self.base_position = np.array([0,0,0])
 
-        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([1,1, 0]), self.high_obs - self.low_obs)
         
     
     def _set_home(self):
@@ -314,6 +307,7 @@ class Env(gym.Env):
         # reset
         self.step_counter = 0
         self.collided = False
+        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([1,1, 0]), self.high_obs - self.low_obs, is_training= self.is_train)
 
         #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
         self.terminated=False
@@ -356,22 +350,15 @@ class Env(gym.Env):
         # robot goes to the initial position
         self.motionexec.go_to_target(self.init_home, self.init_orn)
 
-
         # get position observation
         self.current_pos = p.getLinkState(self.RobotUid,self.effector_link)[4]
         self.current_orn = p.getLinkState(self.RobotUid,self.effector_link)[5]
 
+        # get camera results 
+        self.camera_robot.move_effector(0)
+        self.image = self.camera_robot.get_image()
+
         self.current_joint_position = [0]
-        # get lidar observation
-        lidar_results = self._set_lidar_cylinder()
-        for i, ray in enumerate(lidar_results):
-            self.obs_rays[i] = ray[2]
-        rc = RaysCauculator(self.obs_rays)
-        self.indicator = rc.get_indicator()
-        self.camera = self._set_camera(self.observation_space['image'].shape[1], self.observation_space['image'].shape[0])
-        self.image = self.camera()
-        
-            
         for i in range(self.base_link, self.effector_link):
             self.current_joint_position.append(p.getJointState(bodyUniqueId=self.RobotUid, jointIndex=i)[0])
 
@@ -404,14 +391,14 @@ class Env(gym.Env):
         # print (action)
         # set a coefficient to prevent the action from being too large
         self.action = action
-        dv = 0.005
+        dv = 0.00005
         dx = action[0]*dv
         dy = action[1]*dv
         dz = action[2]*dv
         droll= action[3]*dv
         dpitch = action[4]*dv
         dyaw = action[5]*dv
-        camera_vel = action[6]*dv if self.camera_args['placement'] == 'ring' else 0
+        camera_vel = action[6]*dv if len(action) > 6 else 0
 
         self.current_pos = p.getLinkState(self.RobotUid,self.effector_link)[4]
         self.current_orn = p.getLinkState(self.RobotUid,self.effector_link)[5]
@@ -444,24 +431,10 @@ class Env(gym.Env):
         for i in range(self.base_link, self.effector_link):
             self.current_joint_position.append(p.getJointState(bodyUniqueId=self.RobotUid, jointIndex=i)[0])
         
-        # logging.debug("self.current_pos={}\n".format(self.current_pos))
  
-        # get lidar observation
-        lidar_results = self._set_lidar_cylinder()
-        for i, ray in enumerate(lidar_results):
-            self.obs_rays[i] = ray[2]
-        # print (self.obs_rays)
-        rc = RaysCauculator(self.obs_rays)
-        self.indicator = rc.get_indicator()
-        if not self.step_counter % 1:
-            if self.camera_args['placement'] in ['tip', 'body']:
-                self.camera = self._set_camera(self.observation_space['image'].shape[1], self.observation_space['image'].shape[0])
-                self.image = self.camera()
-            elif self.camera_args['placement'] == 'top':
-                self.image = self.camera()
-            elif self.camera_args['placement'] == 'ring':
-                self.camera = self._set_camera(self.observation_space['image'].shape[1], self.observation_space['image'].shape[0], camera_vel= camera_vel)
-                self.image = self.camera()
+        # get camera results 
+        self.camera_robot.move_effector(camera_vel)
+        self.image = self.camera_robot.get_image()
             
         # check collision
         for i in range(len(self.obsts)):
@@ -551,7 +524,6 @@ class Env(gym.Env):
         self.state[13] = self.distance
         return{
             'position': self.state,#np.zeros_like(self.state),#
-            'indicator': self.indicator,#np.zeros_like(self.indicator),#
             'image': self.image,
         }
     

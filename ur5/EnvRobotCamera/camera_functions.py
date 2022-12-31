@@ -30,6 +30,38 @@ class CameraRail:
 
         return [self.center[0] + x, self.center[1] + y, self.z]
 
+class CameraRailRobot:
+    
+    
+    def __init__(self, center, radius, z_height, phi_min= -np.pi, phi_max= np.pi, phi_offset = 1.2*np.pi, max_step_size= np.pi/25, phi= 0): # phi in RAD
+        if type(center) is list: center = np.array(center)
+        self.center = center
+        self.radius = radius
+        self.z = z_height
+        self.phi = phi
+        self.phi_min = phi_min
+        self.phi_max = phi_max
+        self.phi_offset = phi_offset
+        self.max_step_size = max_step_size
+        self.position = self._get_coords()
+        self.vel = 0
+
+
+    def _clip_phi(self):
+        self.phi = np.clip(self.phi, self.phi_min + self.phi_offset, self.phi_max + self.phi_offset)
+
+    def get_coords(self, d_phi, factor = 0.1):
+        self.phi += np.clip(d_phi, -self.max_step_size, self.max_step_size)
+        
+        return self._get_coords()
+
+    def _get_coords(self) -> list:
+        self._clip_phi()
+        x = np.cos(self.phi) * self.radius
+        y = np.sin(self.phi) * self.radius
+
+        return [self.center[0] + x, self.center[1] + y, self.z]
+
 class CameraRobot:
     """
     Camera being held by robot, range of motion is reduced by the range of the robot.
@@ -41,63 +73,87 @@ class CameraRobot:
         :param fov: FOV of the camera
     """
 
-    def __init__(self, urdf_root_path: str, reference: np.ndarray, d_reference: np.ndarray, target: np.ndarray, fov: int = 90, image_height= 128, image_width= 128):
+    def __init__(self, urdf_root_path: str, reference: np.ndarray, d_reference: np.ndarray, target: np.ndarray, fov: int = 90, image_height= 128, image_width= 128, is_training= False):
         self.base_pos = reference + d_reference
-        self.base_orn = p.getQuaternionFromEuler(-d_reference)
+        self.base_orn = p.getQuaternionFromEuler([0,0,0])
         self.RobotUid = p.loadURDF(urdf_root_path, basePosition=self.base_pos, baseOrientation=self.base_orn, useFixedBase=True)
         self.base_link = 1
         self.effector_link = 7
         self.motionexec = MotionExecute(self.RobotUid, self.base_link, self.effector_link)
         self.init_home = reference + d_reference/2
-        self.init_orn = p.quaternionFromEuler([0,0,0])
+        self.init_orn = p.getQuaternionFromEuler([0,0,0])
         self.motionexec.go_to_target(self.init_home, self.init_orn)
         self.current_pos = p.getLinkState(self.RobotUid,self.effector_link)[4]
         self.current_orn = p.getLinkState(self.RobotUid,self.effector_link)[5]
         self.target = target
-        self.orientation_debug = [p.addUserDebugParameter(f'{i}o') for i in [1, 2, 3]]
-        self.position_debug = [p.addUserDebugParameter(f'{i}p') for i in [1, 2, 3]]
+        self.orientation_debug = [p.addUserDebugParameter(f'roll', -10, 10, 0), p.addUserDebugParameter(f'pitch', -10, 10, 0), p.addUserDebugParameter(f'yaw', -10, 10, 0)]
+        self.position_debug = [p.addUserDebugParameter(f'x', -5, 5, 0.7), p.addUserDebugParameter(f'y', -5, 5, 0.7), p.addUserDebugParameter(f'z', -2, 2, 0.4)]
+        self.target_debug = [p.addUserDebugParameter(f'x_target', -5, 5, 0), p.addUserDebugParameter(f'y_target', -5, 5, 0.4), p.addUserDebugParameter(f'z_target', -2, 2, 0.3)]
+        self.d_phi_debug = p.addUserDebugParameter(f'd_phi', -1, 1, 0)
         self.fov = fov
         self.image_height = image_height
         self.image_width = image_width
+        self.bahn = CameraRailRobot(self.base_pos, 0.5, 0.5, -np.pi/2, np.pi/2, 1.2*np.pi)
+        self.is_training = is_training
 
         self.current_joint_position = None
 
         self.debug_lines = {}
 
-    def get_current_joint_position(self):
+    def update_current_joint_position(self):
         self.current_joint_position = [0]
         for i in range(self.base_link, self.effector_link):
             self.current_joint_position.append(p.getJointState(bodyUniqueId=self.RobotUid, jointIndex=i)[0])    
 
-    def move_effector(self, position, orientation):
-        self.motionexec.go_to_target(position, orientation)
-        self._set_camera()
+    def move_effector(self, d_position):
+        if not self.is_training:
+            roll = p.readUserDebugParameter(self.orientation_debug[0])
+            pitch = p.readUserDebugParameter(self.orientation_debug[1])
+            yaw = p.readUserDebugParameter(self.orientation_debug[2])
+            orientation = p.getQuaternionFromEuler([roll, pitch, yaw])
+            # x = p.readUserDebugParameter(self.position_debug[0])
+            # y = p.readUserDebugParameter(self.position_debug[1])
+            # z = p.readUserDebugParameter(self.position_debug[2])
+            # position = [x, y, z]
+            position = self.bahn.get_coords(p.readUserDebugParameter(self.d_phi_debug))
+        else:
+            position = self.bahn.get_coords(d_position)
+
+        orientation = p.getQuaternionFromAxisAngle(add_list(self.target, position, -1), -np.pi*0.5)
+        
+        self.current_pos = position
+        self.current_orn = orientation
+        self.motionexec.go_to_target(position, p.getEulerFromQuaternion(orientation))
+        self.update_current_joint_position()
+
 
     def _remove_debug_lines(self, line_ids):
         for line_id in line_ids:
             if self.debug_lines.get(line_id, None) is not None:
                 p.removeUserDebugItem(self.debug_lines.get(line_id))
 
-    def _set_camera(self, position = None, orientation = None, camera_type= 'rgb', debug_lines= True):
+    def _set_camera(self, position, orientation, camera_type= 'rgb', debug_lines= True):
         
         self._remove_debug_lines(self.debug_lines.keys())
 
-        if orientation is None:
-            orientation = [p.readUserDebugParameter(p) for p in self.orientation_debug]
-        if position is None:
-            position = [p.readUserDebugParameter(p) for p in self.position_debug]
-
         up_vector, forward_vector, left_vector = directionalVectorsFromQuaternion(orientation)
+        
+        if not self.is_training:
+            x = p.readUserDebugParameter(self.target_debug[0])
+            y = p.readUserDebugParameter(self.target_debug[1])
+            z = p.readUserDebugParameter(self.target_debug[2])
+            target = [x, y, z]
+            self.target = target
+        else:
+            target = self.target
 
-        if debug_lines:
-            self.debug_lines['forward'] = p.addUserDebugLine(position, add_list(position, forward_vector, [255, 0, 0]))
-            self.debug_lines['left'] = p.addUserDebugLine(position, add_list(position, left_vector, [0, 255, 0]))
+        if not self.is_training and debug_lines:
+            self.debug_lines['forward'] = p.addUserDebugLine(position, add_list(position, forward_vector), [255, 0, 0])
+            self.debug_lines['left'] = p.addUserDebugLine(position, add_list(position, left_vector), [0, 255, 0])
             self.debug_lines['up'] = p.addUserDebugLine(position, add_list(position, up_vector), [0,0,255])
+            self.debug_lines['target'] = p.addUserDebugLine(position, target, [127, 127, 127])
 
-        target = self.target
 
-
-        self.move_effector(position)
 
         viewMatrix = p.computeViewMatrix(
             cameraTargetPosition=target,
@@ -142,9 +198,10 @@ class CameraRobot:
         
         return _set_camera_inner
 
-    def get_image(self, position= None, orientation = None):
+    def get_image(self):
 
-        return self._set_camera(position, orientation)()
+        return self._set_camera(self.current_pos, self.current_orn)()
+
 
 
 

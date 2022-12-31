@@ -53,7 +53,7 @@ params = {
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
-        'placement' : 'body',
+        'placement' : 'buddy',
         'type' : 'rgb',
         'prev_pos' : 0,
         'visualize' : True,
@@ -63,7 +63,8 @@ params = {
 
 def parse_args():
     parser = argparse.ArgumentParser(description='EnvWithCamera')
-    parser.add_argument('--cnn_dims', nargs=2, type=int, default=[8,16])
+    parser.add_argument('--cnn_dims', nargs=2, type=int, default=[12,24])
+    parser.add_argument('--parallel_envs', type=int, default= 16)
 
     return parser.parse_args()
 
@@ -104,7 +105,7 @@ def make_env(rank: int, seed: int = 0) -> Callable:
 
 if __name__=='__main__':
     
-    #args = parse_args()
+    args = parse_args()
 
     # Separate evaluation env
     eval_env = Env(
@@ -133,7 +134,7 @@ if __name__=='__main__':
         )
     eval_env = Monitor(eval_env)
     # load env
-    env = SubprocVecEnv([make_env(i) for i in range(1)])
+    env = SubprocVecEnv([make_env(i) for i in range(args.parallel_envs)])
     # Stops training when the model reaches the maximum number of episodes
     callback_max_episodes = StopTrainingOnMaxEpisodes(max_episodes=1e8, verbose=1)
 
@@ -143,17 +144,17 @@ if __name__=='__main__':
                        deterministic=True, render=False)
     
     # Save a checkpoint every ? steps
-    checkpoint_callback = CheckpointCallback(save_freq=51200, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}',
+    checkpoint_callback = CheckpointCallback(save_freq=1_000_000, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}',
                                         name_prefix='reach')
     # Create the callback list
     callback = CallbackList([checkpoint_callback, callback_max_episodes, eval_callback])
 
     policy_kwargs = dict(
     features_extractor_class=CustomCombinedExtractor,
-    features_extractor_kwargs=dict(features_dim=128, cnn_dims= [8,16]),
+    features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
     )
-    model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}')
-    #assert next(model.get_parameters()).is_cuda, 'Model not in GPU'
+    model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=512, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}')
+    # assert next(model.get_parameters()).is_cuda, 'Model not in GPU'
     # model.load(get_last_save())
     # model = PPO.load('./models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
 #%%

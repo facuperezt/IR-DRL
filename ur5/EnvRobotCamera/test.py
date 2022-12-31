@@ -80,13 +80,7 @@ if __name__=='__main__':
         debug=params['debug'],
         )
     # load drl model
-    # model = PPO.load(get_last_save(), env=env)
-    # body
-    # model = PPO.load('../../from_server/models_on_body/reach_ppo_ckp_logs/rgbd/reach_8192000_steps.zip', env=env)
-    # model = PPO.load('../../from_server/models_on_body/best_reach_ppo/rgbd/best_model.zip', env=env)
-    # ring
-    model = PPO.load('../../from_server/models/reach_ppo_ckp_logs/rgbd/reach_66355200_steps.zip', env=env)
-    # model = PPO.load('../../from_server/models/best_reach_ppo/rgbd/best_model.zip', env=env)
+    model = PPO.load('./models/reach_ppo_ckp_logs/rgb/reach_750_steps.zip', env=env)
     # top
 
     while True:
