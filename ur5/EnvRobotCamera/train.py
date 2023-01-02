@@ -65,6 +65,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='EnvWithCamera')
     parser.add_argument('--cnn_dims', nargs=2, type=int, default=[12,24])
     parser.add_argument('--parallel_envs', type=int, default= 16)
+    parser.add_argument('--name', type= str, default='default')
 
     return parser.parse_args()
 
@@ -139,12 +140,12 @@ if __name__=='__main__':
     callback_max_episodes = StopTrainingOnMaxEpisodes(max_episodes=1e8, verbose=1)
 
     # Use deterministic actions for evaluation
-    eval_callback = EvalCallback(eval_env, best_model_save_path=f'./models/best_reach_ppo/{params["camera_args"]["type"]}',
-                       log_path='./models/best_reach_ppo/', eval_freq=10000,
+    eval_callback = EvalCallback(eval_env, best_model_save_path=f'./models/best_reach_ppo/{params["camera_args"]["type"]}/{args.name}',
+                       log_path=f'./models/best_reach_ppo/{args.name}', eval_freq=10000,
                        deterministic=True, render=False)
     
     # Save a checkpoint every ? steps
-    checkpoint_callback = CheckpointCallback(save_freq=1_000_000, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}',
+    checkpoint_callback = CheckpointCallback(save_freq=500_000, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}/{args.name}',
                                         name_prefix='reach')
     # Create the callback list
     callback = CallbackList([checkpoint_callback, callback_max_episodes, eval_callback])
@@ -153,7 +154,7 @@ if __name__=='__main__':
     features_extractor_class=CustomCombinedExtractor,
     features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
     )
-    model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=512, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}')
+    model = PPO("MultiInputPolicy", env, policy_kwargs= policy_kwargs, batch_size=512, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
     # assert next(model.get_parameters()).is_cuda, 'Model not in GPU'
     # model.load(get_last_save())
     # model = PPO.load('./models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
@@ -162,7 +163,7 @@ if __name__=='__main__':
         total_timesteps=1e10,
         n_eval_episodes=64,
         callback=callback,
-        reset_num_timesteps=False)
+        )
     model.save('./models/reach_ppo')
 
 # %%

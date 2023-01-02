@@ -37,7 +37,7 @@ def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
 params = {
     'is_render': True, 
     'is_good_view': True,
-    'is_train' : True,
+    'is_train' : False,
     'show_boundary' : True,
     'add_moving_obstacle' : False,
     'moving_obstacle_speed' : 0.15,

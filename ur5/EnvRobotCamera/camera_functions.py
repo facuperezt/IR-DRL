@@ -43,11 +43,10 @@ class CameraRailRobot:
         self.phi_max = phi_max
         self.phi_offset = phi_offset
         self.max_step_size = max_step_size
-        self.position = self._get_coords()
-        if x_y_offset is None:
+        self.x_y_offset = x_y_offset
+        if self.x_y_offset is None:
             self.x_y_offset = [0, 0]
-        else:
-            self.x_y_offset = x_y_offset
+        self.position = self._get_coords()
         self.vel = 0
 
 
@@ -97,7 +96,7 @@ class CameraRobot:
         self.fov = fov
         self.image_height = image_height
         self.image_width = image_width
-        self.bahn = CameraRailRobot(self.base_pos, radius= 0.5, z_height= 0.5, phi_min= -np.pi/2, phi_max= np.pi/2, phi_offset= 0.2*np.pi, x_y_offset= [-0.25, -0.25])
+        self.bahn = CameraRailRobot(self.base_pos, radius= 0.5, z_height= 0.5, phi_min= np.pi, phi_max= 2*np.pi, phi_offset= 0, x_y_offset= [0, -0.65], phi= np.pi*3/2)
         self.is_training = is_training
 
         self.current_joint_position = None
@@ -162,7 +161,7 @@ class CameraRobot:
         viewMatrix = p.computeViewMatrix(
             cameraTargetPosition=target,
             cameraEyePosition= position,
-            cameraUpVector= up_vector,
+            cameraUpVector= [0, 0, 1],
             )
 
         projectionMatrix = p.computeProjectionMatrixFOV(
