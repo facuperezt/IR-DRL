@@ -37,7 +37,7 @@ def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
 params = {
     'is_render': True, 
     'is_good_view': True,
-    'is_train' : False,
+    'is_train' : True,
     'show_boundary' : True,
     'add_moving_obstacle' : False,
     'moving_obstacle_speed' : 0.15,
@@ -50,7 +50,7 @@ params = {
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
-        'placement' : 'duo',
+        'placement' : 'buddy',
         'type' : 'rgb',
         'prev_pos' : 0,
         'visualize' : True,
@@ -80,7 +80,8 @@ if __name__=='__main__':
         debug=params['debug'],
         )
     # load drl model
-    model = PPO.load('./models/reach_ppo_ckp_logs/rgb/reach_750_steps.zip', env=env)
+    # model = PPO.load('./models/reach_ppo_ckp_logs/rgb/reach_750_steps.zip', env=env)
+    model = PPO.load('../../from_server/rgb_duo/v2/reach_32000000_steps.zip', env=env)
     # top
 
     while True:

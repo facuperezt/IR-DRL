@@ -33,7 +33,7 @@ class CameraRail:
 class CameraRailRobot:
     
     
-    def __init__(self, center, radius, z_height, phi_min= -np.pi, phi_max= np.pi, phi_offset = 1.2*np.pi, max_step_size= np.pi/25, phi= 0): # phi in RAD
+    def __init__(self, center, radius, z_height, phi_min= -np.pi, phi_max= np.pi, phi_offset = 0, x_y_offset= None, max_step_size= np.pi/25, phi= 0): # phi in RAD
         if type(center) is list: center = np.array(center)
         self.center = center
         self.radius = radius
@@ -44,6 +44,10 @@ class CameraRailRobot:
         self.phi_offset = phi_offset
         self.max_step_size = max_step_size
         self.position = self._get_coords()
+        if x_y_offset is None:
+            self.x_y_offset = [0, 0]
+        else:
+            self.x_y_offset = x_y_offset
         self.vel = 0
 
 
@@ -60,7 +64,7 @@ class CameraRailRobot:
         x = np.cos(self.phi) * self.radius
         y = np.sin(self.phi) * self.radius
 
-        return [self.center[0] + x, self.center[1] + y, self.z]
+        return [self.center[0] + x + self.x_y_offset[0], self.center[1] + y + self.x_y_offset[1], self.z]
 
 class CameraRobot:
     """
@@ -93,7 +97,7 @@ class CameraRobot:
         self.fov = fov
         self.image_height = image_height
         self.image_width = image_width
-        self.bahn = CameraRailRobot(self.base_pos, 0.5, 0.5, -np.pi/2, np.pi/2, 1.2*np.pi)
+        self.bahn = CameraRailRobot(self.base_pos, radius= 0.5, z_height= 0.5, phi_min= -np.pi/2, phi_max= np.pi/2, phi_offset= 0.2*np.pi, x_y_offset= [-0.25, -0.25])
         self.is_training = is_training
 
         self.current_joint_position = None

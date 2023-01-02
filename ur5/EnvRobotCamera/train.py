@@ -53,7 +53,7 @@ params = {
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
-        'placement' : 'buddy',
+        'placement' : 'duo',
         'type' : 'rgb',
         'prev_pos' : 0,
         'visualize' : True,
