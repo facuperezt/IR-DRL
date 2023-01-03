@@ -96,7 +96,7 @@ class CameraRobot:
         self.fov = fov
         self.image_height = image_height
         self.image_width = image_width
-        self.bahn = CameraRailRobot(self.base_pos, radius= 0.5, z_height= 0.5, phi_min= np.pi, phi_max= 2*np.pi, phi_offset= 0, x_y_offset= [0, -0.65], phi= np.pi*3/2)
+        self.bahn = CameraRailRobot(self.base_pos, radius= 0.5, z_height= 0.5, phi_min= np.pi, phi_max= 2*np.pi, phi_offset= 0, x_y_offset= [0, -0.6], phi= np.pi*3/2)
         self.is_training = is_training
 
         self.current_joint_position = None
@@ -109,7 +109,7 @@ class CameraRobot:
             self.current_joint_position.append(p.getJointState(bodyUniqueId=self.RobotUid, jointIndex=i)[0])    
 
     def move_effector(self, d_position):
-        if not self.is_training:
+        if False:# not self.is_training:
             roll = p.readUserDebugParameter(self.orientation_debug[0])
             pitch = p.readUserDebugParameter(self.orientation_debug[1])
             yaw = p.readUserDebugParameter(self.orientation_debug[2])
@@ -122,12 +122,25 @@ class CameraRobot:
         else:
             position = self.bahn.get_coords(d_position)
 
-        orientation = p.getQuaternionFromAxisAngle(add_list(self.target, position, -1), -np.pi*0.5)
+        # orientation = p.getQuaternionFromAxisAngle(add_list(self.target, position, -1), -np.pi*0.5)
+        orientation = [1,0,0,1]
         
         self.current_pos = position
         self.current_orn = orientation
         self.motionexec.go_to_target(position, p.getEulerFromQuaternion(orientation))
         self.update_current_joint_position()
+        # self.debug_lines['forward'] = p.addUserDebugLine(position, add_list(position, forward_vector), [255, 0, 0])
+        # self.debug_lines['left'] = p.addUserDebugLine(position, add_list(position, left_vector), [0, 255, 0])
+        # self.debug_lines['up'] = p.addUserDebugLine(position, add_list(position, up_vector), [0,0,255])
+        # print('-------------------------')
+        # print('-------------------------')
+        # print('-------------------------')
+        # print(p.getLinkState(self.RobotUid,self.effector_link)[1])
+        # print(p.getLinkState(self.RobotUid,self.effector_link)[5])
+        # print(orientation) 
+        # print('--------------------------')
+        # print('--------------------------')
+        # print('--------------------------')
 
 
     def _remove_debug_lines(self, line_ids):
@@ -135,13 +148,13 @@ class CameraRobot:
             if self.debug_lines.get(line_id, None) is not None:
                 p.removeUserDebugItem(self.debug_lines.get(line_id))
 
-    def _set_camera(self, position, orientation, camera_type= 'rgb', debug_lines= True):
+    def _set_camera(self, position, orientation, camera_type= 'rgb', debug_lines= False):
         
         self._remove_debug_lines(self.debug_lines.keys())
 
         up_vector, forward_vector, left_vector = directionalVectorsFromQuaternion(orientation)
         
-        if not self.is_training:
+        if False:#not self.is_training:
             x = p.readUserDebugParameter(self.target_debug[0])
             y = p.readUserDebugParameter(self.target_debug[1])
             z = p.readUserDebugParameter(self.target_debug[2])
@@ -151,10 +164,11 @@ class CameraRobot:
             target = self.target
 
         if not self.is_training and debug_lines:
-            self.debug_lines['forward'] = p.addUserDebugLine(position, add_list(position, forward_vector), [255, 0, 0])
-            self.debug_lines['left'] = p.addUserDebugLine(position, add_list(position, left_vector), [0, 255, 0])
-            self.debug_lines['up'] = p.addUserDebugLine(position, add_list(position, up_vector), [0,0,255])
+            # self.debug_lines['forward'] = p.addUserDebugLine(position, add_list(position, forward_vector), [255, 0, 0])
+            # self.debug_lines['left'] = p.addUserDebugLine(position, add_list(position, left_vector), [0, 255, 0])
+            # self.debug_lines['up'] = p.addUserDebugLine(position, add_list(position, up_vector), [0,0,255])
             self.debug_lines['target'] = p.addUserDebugLine(position, target, [127, 127, 127])
+            pass
 
 
 
@@ -173,7 +187,7 @@ class CameraRobot:
             # farVal=self.y_low_obs,
             fov= self.fov,
             aspect=1,
-            nearVal= 0.1,
+            nearVal= 0.05,
             farVal= 4.0,
             )
 

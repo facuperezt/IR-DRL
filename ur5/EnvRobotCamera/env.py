@@ -308,7 +308,7 @@ class Env(gym.Env):
         self.step_counter = 0
         self.collided = False
         self.past_distance = deque([])
-        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 2, 0]), self.high_obs - self.low_obs, is_training= self.is_train)
+        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 2, 0]), (self.high_obs/2 + self.low_obs/2).tolist(), is_training= self.is_train)
 
         #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
         self.terminated=False
