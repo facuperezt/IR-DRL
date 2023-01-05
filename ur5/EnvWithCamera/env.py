@@ -120,14 +120,13 @@ class Env(gym.Env):
         }
         obs_spaces = {
             'position': spaces.Box(low=-2, high=2, shape=(14,), dtype=np.float32),
-            'image': spaces.Box(low=0, high= 255, shape=(128,128,nr_channels[self.camera_args['type']],), dtype=np.uint8),
+            'indicator': spaces.Box(low=0, high=2, shape=(10,), dtype=np.int8),
+            'image': spaces.Box(low=0, high= 255, shape=(130,128,nr_channels[self.camera_args['type']],), dtype=np.uint8),
         }
-        if self.camera_args['placement'] not in ['duo', 'ring', 'ring_obs']:
-            obs_spaces.__setattr__('indicator', spaces.Box(low=0, high=2, shape=(10,), dtype=np.int8))
-        else:
-            obs_spaces.__setattr__('camera_position', spaces.Box(low=-3, high= 3, shape=(3,), dtype=np.float16))
-        if self.camera_args['placement'] in ['ring_obs']:
-            obs_spaces.__setattr__('camera_pos', spaces.Box(low=-np.pi, high=np.pi, shape=(1,), dtype=np.float16))
+        # if self.camera_args['placement'] in ['duo', 'ring', 'ring_obs']:
+        #     obs_spaces.__setattr__('indicator', spaces.Box(low=0, high=2, shape=(10,), dtype=np.int8))
+        # if self.camera_args['placement'] in ['ring_obs']:
+        #     obs_spaces.__setattr__('camera_pos', spaces.Box(low=-np.pi, high=np.pi, shape=(1,), dtype=np.float16))
         self.observation_space=spaces.Dict(obs_spaces)
         
 

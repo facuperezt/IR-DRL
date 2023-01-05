@@ -144,11 +144,11 @@ class Env(gym.Env):
 
         # parameters of augmented targets for training
         if self.is_train: 
-            self.distance_threshold = 0.4
-            self.distance_threshold_last = 0.4
-            self.distance_threshold_increment_p = 0.002
-            self.distance_threshold_increment_m = 0.02
-            self.distance_threshold_max = 0.1
+            self.distance_threshold = 0.2
+            self.distance_threshold_last = 0.2
+            self.distance_threshold_increment_p = 0.001
+            self.distance_threshold_increment_m = 0.01
+            self.distance_threshold_max = 0.4
             self.distance_threshold_min = 0.01
         # parameters of augmented targets for testing
         else:
@@ -308,7 +308,7 @@ class Env(gym.Env):
         self.step_counter = 0
         self.collided = False
         self.past_distance = deque([])
-        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 2, 0]), (self.high_obs/2 + self.low_obs/2).tolist(), is_training= self.is_train)
+        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 1.5, 0]), (self.high_obs/2 + self.low_obs/2).tolist(), fov= 60, is_training= self.is_train)
 
         #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
         self.terminated=False
@@ -356,8 +356,9 @@ class Env(gym.Env):
         self.current_orn = p.getLinkState(self.RobotUid,self.effector_link)[5]
 
         # get camera results 
-        self.camera_robot.move_effector(0)
-        self.image = self.camera_robot.get_image()
+        self.image = self.camera_robot.move_camera(0, self.current_pos)
+        # self.camera_robot.move_effector(0)
+        # self.image = self.camera_robot.get_image(self.current_pos)
 
         self.current_joint_position = [0]
         for i in range(self.base_link, self.effector_link):
@@ -434,8 +435,9 @@ class Env(gym.Env):
         
  
         # get camera results 
-        self.camera_robot.move_effector(camera_vel)
-        self.image = self.camera_robot.get_image()
+        self.image = self.camera_robot.move_camera(camera_vel, self.current_pos)
+        # self.camera_robot.move_effector(camera_vel)
+        # self.image = self.camera_robot.get_image(self.current_pos)
             
         # check collision
         for i in range(len(self.obsts)):

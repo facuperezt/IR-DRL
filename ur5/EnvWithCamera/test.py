@@ -50,8 +50,8 @@ params = {
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
-        'placement' : 'duo',
-        'type' : 'rgb',
+        'placement' : 'ring',
+        'type' : 'rgbd',
         'prev_pos' : 0,
         'visualize' : True,
     },
@@ -85,8 +85,8 @@ if __name__=='__main__':
     # model = PPO.load('../../from_server/models_on_body/reach_ppo_ckp_logs/rgbd/reach_8192000_steps.zip', env=env)
     # model = PPO.load('../../from_server/models_on_body/best_reach_ppo/rgbd/best_model.zip', env=env)
     # ring
-    model = PPO.load('../../from_server/models/reach_ppo_ckp_logs/rgbd/reach_66355200_steps.zip', env=env)
-    # model = PPO.load('../../from_server/models/best_reach_ppo/rgbd/best_model.zip', env=env)
+    # model = PPO.load('../../from_server/models/reach_ppo_ckp_logs/rgbd/reach_66355200_steps.zip', env=env)
+    model = PPO.load('../../from_server/models/best_reach_ppo/rgbd/best_model.zip', env=env)
     # top
 
     while True:

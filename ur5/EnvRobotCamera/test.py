@@ -81,7 +81,8 @@ if __name__=='__main__':
         )
     # load drl model
     # model = PPO.load('./models/reach_ppo_ckp_logs/rgb/reach_750_steps.zip', env=env)
-    model = PPO.load('../../from_server/rgb_duo/v3/reach_16000000_steps.zip', env=env)
+    # model = PPO.load('../../from_server/rgb_duo/v3/reach_16000000_steps.zip', env=env)
+    model = PPO.load('../../from_server/rgb_duo/v4/reach_8000000_steps.zip', env=env)
     # top
 
     while True:
