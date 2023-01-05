@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import tensorboard
-from policy import CustomCombinedExtractor
+from custom_policy import CustomCombinedExtractor
 import argparse
 
 CURRENT_PATH = os.path.abspath(__file__)
