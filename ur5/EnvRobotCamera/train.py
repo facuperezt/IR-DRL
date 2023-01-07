@@ -66,6 +66,7 @@ def parse_args():
     parser.add_argument('--cnn_dims', nargs=2, type=int, default=[12,24])
     parser.add_argument('--parallel_envs', type=int, default= 16)
     parser.add_argument('--name', type= str, default='default')
+    parser.add_argument('--load_at_steps', type= int, default= 0)
 
     return parser.parse_args()
 
@@ -145,20 +146,25 @@ if __name__=='__main__':
                        deterministic=True, render=False)
     
     # Save a checkpoint every ? steps
-    checkpoint_callback = CheckpointCallback(save_freq=500_000, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}/{args.name}',
+    checkpoint_callback = CheckpointCallback(save_freq=250_000, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}/{args.name}',
                                         name_prefix='reach')
     # Create the callback list
     callback = CallbackList([checkpoint_callback, callback_max_episodes, eval_callback])
 
-    policy_kwargs = dict(
-    features_extractor_class=CustomCombinedExtractor,
-    features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
-    )
-    # model = PPO("MultiInputPolicy", env, gamma=0.993, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+
     # assert next(model.get_parameters()).is_cuda, 'Model not in GPU'
     # model.load(get_last_save())
     # model = PPO.load('./models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
-    model = PPO.load('./models/reach_ppo_ckp_logs/rgb/v5/reach_24000000_steps.zip', env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+
+
+    if args.load_at_steps == 0:
+        policy_kwargs = dict(
+        features_extractor_class=CustomCombinedExtractor,
+        features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
+        )
+        model = PPO("MultiInputPolicy", env, gamma=0.993, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+    else:
+        model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
 #%%
     model.learn(
         total_timesteps=1e10,
