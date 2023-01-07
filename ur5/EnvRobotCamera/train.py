@@ -162,7 +162,7 @@ if __name__=='__main__':
         features_extractor_class=CustomCombinedExtractor,
         features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
         )
-        model = PPO("MultiInputPolicy", env, gamma=0.993, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        model = PPO("MultiInputPolicy", env, gamma=0.99, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
     else:
         model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', gamma= 0.99, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
 #%%
