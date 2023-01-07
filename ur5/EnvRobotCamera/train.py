@@ -154,10 +154,11 @@ if __name__=='__main__':
     features_extractor_class=CustomCombinedExtractor,
     features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
     )
-    model = PPO("MultiInputPolicy", env, gamma=0.993, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+    # model = PPO("MultiInputPolicy", env, gamma=0.993, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
     # assert next(model.get_parameters()).is_cuda, 'Model not in GPU'
     # model.load(get_last_save())
     # model = PPO.load('./models/reach_ppo_ckp_logs/reach_1024000_steps', env=env)
+    model = PPO.load('./models/reach_ppo_ckp_logs/rgb/v5/reach_24000000_steps.zip', env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
 #%%
     model.learn(
         total_timesteps=1e10,
