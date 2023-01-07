@@ -308,7 +308,7 @@ class Env(gym.Env):
         self.step_counter = 0
         self.collided = False
         self.past_distance = deque([])
-        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 1.5, 0]), (self.high_obs/2 + self.low_obs/2).tolist(), fov= 60, is_training= self.is_train)
+        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 1.7, 0]), (self.high_obs/2 + self.low_obs/2).tolist(), fov= 60, is_training= self.is_train)
 
         #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
         self.terminated=False
@@ -480,7 +480,7 @@ class Env(gym.Env):
             for j in range(0,8):
                 if arrow[j] != arrow[j+1]:
                     shaking += 1
-        reward -= shaking*0.05        
+        reward -= shaking*0.075        
         # success
         is_success = False
         if out:
