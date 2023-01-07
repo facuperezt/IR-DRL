@@ -100,7 +100,7 @@ if __name__=='__main__':
                        deterministic=True, render=False)
     
     # Save a checkpoint every ? steps
-    checkpoint_callback = CheckpointCallback(save_freq=51200, save_path='./models/reach_ppo_ckp_logs/',
+    checkpoint_callback = CheckpointCallback(save_freq=8, save_path='./models/reach_ppo_ckp_logs/',
                                         name_prefix='reach')
     # Create the callback list
     callback = CallbackList([checkpoint_callback, callback_max_episodes, eval_callback])

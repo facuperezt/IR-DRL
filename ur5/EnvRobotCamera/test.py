@@ -39,8 +39,8 @@ params = {
     'is_good_view': True,
     'is_train' : False,
     'show_boundary' : True,
-    'add_moving_obstacle' : False,
-    'moving_obstacle_speed' : 0.15,
+    'add_moving_obstacle' : True,
+    'moving_obstacle_speed' : 0.5,
     'moving_init_direction' : -1,
     'moving_init_axis' : 0,
     'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
@@ -82,7 +82,7 @@ if __name__=='__main__':
     # load drl model
     # model = PPO.load('./models/reach_ppo_ckp_logs/rgb/reach_750_steps.zip', env=env)
     # model = PPO.load('../../from_server/rgb_duo/v3/reach_16000000_steps.zip', env=env)
-    model = PPO.load('../../from_server/rgb_duo/v4/reach_8000000_steps.zip', env=env)
+    model = PPO.load('../../from_server/rgb_duo/v5/reach_24000000_steps.zip', env=env)
     # top
 
     while True:
