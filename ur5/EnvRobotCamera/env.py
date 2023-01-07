@@ -503,7 +503,7 @@ class Env(gym.Env):
             self.terminated=False
             reward += -0.01*self.distance
 
-        if self.step_counter < 2 and self.collided:
+        if self.step_counter < 2 and self.collided and self.distance_threshold < self.distance_threshold_max/2:
             reward = 0
 
         info={'step':self.step_counter,
@@ -512,7 +512,8 @@ class Env(gym.Env):
               'reward':reward,
               'collided':self.collided, 
               'shaking':shaking,
-              'is_success': is_success}
+              'is_success': is_success,
+              'distance_threshold': self.distance_threshold}
         
         if self.terminated: 
             print(info)
