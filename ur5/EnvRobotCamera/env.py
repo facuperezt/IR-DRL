@@ -514,20 +514,20 @@ class Env(gym.Env):
             self.terminated=False
             reward += -0.01*self.distance
 
-        if self.distance_threshold_min != self.distance_threshold_max and not self.collided:
-            reward += 1 / ((self.distance_threshold - self.distance_threshold_min)/(self.distance_threshold_max - self.distance_threshold_min))
+        if self.is_train and not self.collided and not out:
+            reward += (1/(self.distance_threshold_max - self.distance_threshold_min)) / ((self.distance_threshold - self.distance_threshold_min)/(self.distance_threshold_max - self.distance_threshold_min))
 
         # if self.step_counter < 2 and self.collided and self.distance_threshold < self.distance_threshold_max/2:
         #     reward = 0
 
         info={'step':self.step_counter,
               'bad_spawn_ratio': round(self.bad_spawn_counter/self.number_of_resets, 4),
-              # 'out':out,
+            #   'out':out,
               'distance': round(self.distance, 4),
               'reward': round(reward,4),
-              # 'collided':self.collided, 
+              'collided':self.collided, 
               'shaking':shaking,
-              # 'is_success': is_success,
+              'is_success': is_success,
               'distance_threshold': self.distance_threshold,
               }
         
