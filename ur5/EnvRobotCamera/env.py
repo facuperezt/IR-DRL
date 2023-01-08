@@ -515,7 +515,7 @@ class Env(gym.Env):
             reward += -0.01*self.distance
 
         if self.is_train and not self.collided and not out:
-            reward += (1/(self.distance_threshold_max - self.distance_threshold_min)) / ((self.distance_threshold - self.distance_threshold_min)/(self.distance_threshold_max - self.distance_threshold_min))
+            reward -= 3 * ((self.distance_threshold - self.distance_threshold_min)/(self.distance_threshold_max - self.distance_threshold_min))
 
         # if self.step_counter < 2 and self.collided and self.distance_threshold < self.distance_threshold_max/2:
         #     reward = 0
