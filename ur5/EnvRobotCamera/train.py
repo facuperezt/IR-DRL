@@ -48,8 +48,8 @@ params = {
     'moving_init_axis' : 0,
     'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
     'max_steps_one_episode' : 1024,
-    'num_obstacles' : 3,
-    'prob_obstacles' : 1,
+    'num_obstacles' : 2,
+    'prob_obstacles' : 0.8,
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
