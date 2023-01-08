@@ -127,6 +127,7 @@ class Env(gym.Env):
 
         # step counter
         self.step_counter=0
+        self.bad_spawn_counter = 0
         # max steps in one episode
         self.max_steps_one_episode = max_steps_one_episode
         # whether collision
@@ -384,6 +385,14 @@ class Env(gym.Env):
 
         # do this step in pybullet
         p.stepSimulation()
+
+        # check collision
+        for i in range(len(self.obsts)):
+            contacts = p.getContactPoints(bodyA=self.RobotUid, bodyB=self.obsts[i])        
+            if len(contacts)>0:
+                self.collided = True
+                self.bad_spawn_counter += 1
+                return self.reset()
         
         # input("Press ENTER")
 
@@ -507,13 +516,15 @@ class Env(gym.Env):
         #     reward = 0
 
         info={'step':self.step_counter,
-              'out':out,
-              'distance':self.distance,
-              'reward':reward,
-              'collided':self.collided, 
+              'bad_spawns': self.bad_spawn_counter,
+              # 'out':out,
+              'distance': round(self.distance, 4),
+              'reward': round(reward,4),
+              # 'collided':self.collided, 
               'shaking':shaking,
-              'is_success': is_success,
-              'distance_threshold': self.distance_threshold}
+              # 'is_success': is_success,
+              'distance_threshold': self.distance_threshold,
+              }
         
         if self.terminated: 
             print(info)

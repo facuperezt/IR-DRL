@@ -43,7 +43,7 @@ params = {
     'is_train' : True,
     'show_boundary' : False,
     'add_moving_obstacle' : True,
-    'moving_obstacle_speed' : 0.45,
+    'moving_obstacle_speed' : 0.25,
     'moving_init_direction' : -1,
     'moving_init_axis' : 0,
     'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
