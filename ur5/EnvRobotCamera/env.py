@@ -128,6 +128,7 @@ class Env(gym.Env):
         # step counter
         self.step_counter=0
         self.bad_spawn_counter = 0
+        self.number_of_resets = 0
         # max steps in one episode
         self.max_steps_one_episode = max_steps_one_episode
         # whether collision
@@ -295,6 +296,7 @@ class Env(gym.Env):
     
     
     def reset(self):
+        self.number_of_resets +=1 
         p.resetSimulation()
         # print(time.time())
         self.init_home, self.init_orn = self._set_home()
@@ -516,7 +518,7 @@ class Env(gym.Env):
         #     reward = 0
 
         info={'step':self.step_counter,
-              'bad_spawns': self.bad_spawn_counter,
+              'bad_spawn_ratio': round(self.bad_spawn_counter/self.number_of_resets, 4),
               # 'out':out,
               'distance': round(self.distance, 4),
               'reward': round(reward,4),
