@@ -48,7 +48,7 @@ params = {
     'moving_init_axis' : 0,
     'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
     'max_steps_one_episode' : 1024,
-    'num_obstacles' : 2,
+    'num_obstacles' : 1,
     'prob_obstacles' : 0.7,
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
@@ -162,12 +162,12 @@ if __name__=='__main__':
         features_extractor_class=CustomCombinedExtractor,
         features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
         )
-        model = PPO("MultiInputPolicy", env, gamma=0.99, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        model = PPO("MultiInputPolicy", env, gamma=0.9918, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
     else:
         model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', gamma= 0.99, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
 #%%
     model.learn(
-        total_timesteps=1e10,
+        total_timesteps=24e6,
         n_eval_episodes=64,
         callback=callback,
         )

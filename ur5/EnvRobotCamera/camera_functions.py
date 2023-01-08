@@ -42,6 +42,7 @@ class CameraRailRobotStraight:
 
         self.codist = center_offset_distance
         self.length = length
+        self.pos_rel_to_length = 0
         self.max_vel = max_vel
 
         self.vel = 0
@@ -53,7 +54,13 @@ class CameraRailRobotStraight:
     def _get_coords(self):
         self.vel = np.clip(self.vel, -self.max_vel, self.max_vel)
 
+        self.pos_rel_to_length += self.vel
+        if np.abs(self.pos_rel_to_length) > self.length/2:
+            self.vel = 0
+            self.pos_rel_to_length = np.sign(self.pos_rel_to_length) * self.length/2
+
         self.position += self.vel * self.vec
+
 
     def get_coords(self, d_vel):
         self.vel += d_vel
@@ -136,7 +143,7 @@ class CameraRobot:
         self.image_height = image_height
         self.image_width = image_width
         # self.bahn = CameraRailRobotCircle(self.base_pos, radius= 0.5, z_height= 0.5, phi_min= np.pi, phi_max= 2*np.pi, phi_offset= 0, x_y_offset= [0, 0], phi= np.pi*3/2)
-        self.bahn = CameraRailRobotStraight(self.base_pos, add_list(self.target, self.base_pos, -1), 0.5, 0.5, 0.2)
+        self.bahn = CameraRailRobotStraight(self.base_pos, add_list(self.target, self.base_pos, -1), 0.5, 2, 0.2)
         self.is_training = is_training
 
         self.current_joint_position = None
