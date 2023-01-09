@@ -100,7 +100,7 @@ class Env(gym.Env):
         # parameters for spatial infomation
         self.home = [0, np.pi/2, -np.pi/6, -2*np.pi/3, -4*np.pi/9, np.pi/2, 0.0]
         self.target_position = None
-        self.obsts = None
+        self.obsts = []
         self.current_pos = None
         self.current_orn = None
         self.current_joint_position = None
@@ -149,9 +149,9 @@ class Env(gym.Env):
             self.distance_threshold = 0.2
             self.distance_threshold_last = 0.2
             self.distance_threshold_increment_p = 0.001
-            self.distance_threshold_increment_m = 0.01
-            self.distance_threshold_max = 0.4
-            self.distance_threshold_min = 0.01
+            self.distance_threshold_increment_m = 0.001
+            self.distance_threshold_max = 0.35
+            self.distance_threshold_min = 0.001
         # parameters of augmented targets for testing
         else:
             self.distance_threshold = 0.03
@@ -166,6 +166,7 @@ class Env(gym.Env):
         self.success_counter = 0
 
         self.base_position = np.array([0,0,0])
+        self.target_visual_shape_index = None
 
         
     
@@ -222,6 +223,7 @@ class Env(gym.Env):
                     baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.02, rgbaColor=[1,0,0,1]),
                     basePosition=target_position,
                     )
+        self.target_visual_shape_index = target
         obsts = []
         for i in range(self.num_obstacles):
             obst_position = target_position
@@ -298,14 +300,16 @@ class Env(gym.Env):
     def reset(self):
         self.number_of_resets +=1 
         p.resetSimulation()
+        self.target_visual_shape_index = None
+        self.obsts = []
         # print(time.time())
         self.init_home, self.init_orn = self._set_home()
         # print(self.init_home, self.init_orn)
-        self.target_position, self.obsts = self._add_obstacles()
-        if self.extra_obst:
-            self.moving_xy = choice([0,1])
-            self.barrier = self._add_moving_plate()
-            self.obsts.append(self.barrier)
+        # self.target_position, self.obsts = self._add_obstacles()
+        # if self.extra_obst:
+        #     self.moving_xy = choice([0,1])
+        #     self.barrier = self._add_moving_plate()
+        #     self.obsts.append(self.barrier)
 
         # reset
         self.step_counter = 0
@@ -385,16 +389,36 @@ class Env(gym.Env):
                 self.distance_threshold = self.distance_threshold_min
             print ('current distance threshold: ', self.distance_threshold)
 
-        # do this step in pybullet
-        p.stepSimulation()
+        
+        while True:
+            
 
-        # check collision
-        for i in range(len(self.obsts)):
-            contacts = p.getContactPoints(bodyA=self.RobotUid, bodyB=self.obsts[i])        
-            if len(contacts)>0:
-                self.collided = True
-                self.bad_spawn_counter += 1
-                return self.reset()
+            if self.target_visual_shape_index is not None:
+                p.removeBody(self.target_visual_shape_index)
+                self.target_visual_shape_index = None
+            for obst in self.obsts:
+                p.removeBody(obst)
+
+            self.target_position, self.obsts = self._add_obstacles()
+
+            if self.extra_obst:
+                self.moving_xy = choice([0,1])
+                self.barrier = self._add_moving_plate()
+                self.obsts.append(self.barrier)
+
+            p.performCollisionDetection()
+            
+            # check collision
+            for i in range(len(self.obsts)):
+                contacts = p.getContactPoints(bodyA=self.RobotUid, bodyB=self.obsts[i])        
+                if len(contacts)>0:
+                    break
+            else:
+                break
+
+        # do this step in pybullet
+        # p.stepSimulation()
+
         
         # input("Press ENTER")
 
@@ -456,7 +480,9 @@ class Env(gym.Env):
             if len(contacts)>0:
                 self.collided = True
            
-        p.stepSimulation()
+        # p.stepSimulation()
+        p.performCollisionDetection()
+
         if self.is_good_view:
             time.sleep(0.02)
                

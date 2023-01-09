@@ -45,7 +45,7 @@ params = {
     'moving_init_axis' : 0,
     'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
     'max_steps_one_episode' : 1024,
-    'num_obstacles' : 2,
+    'num_obstacles' : 15,
     'prob_obstacles' : 0.7,
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
@@ -82,7 +82,7 @@ if __name__=='__main__':
     # load drl model
     # model = PPO.load('./models/reach_ppo_ckp_logs/rgb/reach_750_steps.zip', env=env)
     # model = PPO.load('../../from_server/rgb_duo/v3/reach_16000000_steps.zip', env=env)
-    model = PPO.load('../../from_server/rgb_duo/v7/reach_8000000_steps.zip', env=env)
+    model = PPO.load('../../from_server/rgb_duo/v8/reach_12000000_steps.zip', env=env)
     
     
     # top
