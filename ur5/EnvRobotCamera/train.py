@@ -37,29 +37,6 @@ def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
 
     return f'{folder}/{chosen_file}'
 
-params = {
-    'is_render': False, 
-    'is_good_view': False,
-    'is_train' : True,
-    'show_boundary' : False,
-    'add_moving_obstacle' : True,
-    'moving_obstacle_speed' : 0.25,
-    'moving_init_direction' : -1,
-    'moving_init_axis' : 0,
-    'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
-    'max_steps_one_episode' : 1024,
-    'num_obstacles' : 1,
-    'prob_obstacles' : 0.7,
-    'obstacle_box_size' : [0.04,0.04,0.002],
-    'obstacle_sphere_radius' : 0.04,
-    'camera_args' : {
-        'placement' : 'duo',
-        'type' : 'rgb',
-        'prev_pos' : 0,
-        'visualize' : True,
-    },
-    'debug' : False,
-}
 
 def parse_args():
     parser = argparse.ArgumentParser(description='EnvWithCamera')
@@ -68,6 +45,7 @@ def parse_args():
     parser.add_argument('--name', type= str, default='default')
     parser.add_argument('--load_at_steps', type= int, default= 0)
     parser.add_argument('--n_steps', type= int, default= 1024, help='Max steps per epoch')
+    parser.add_argument('-d', '--dynamic', action='store_true', help= 'If flag is present environment will generate a moving obstacle')
 
     return parser.parse_args()
 
@@ -107,8 +85,32 @@ def make_env(rank: int, seed: int = 0) -> Callable:
     return _init
 
 if __name__=='__main__':
-    
     args = parse_args()
+
+    params = {
+    'is_render': False, 
+    'is_good_view': False,
+    'is_train' : True,
+    'show_boundary' : False,
+    'add_moving_obstacle' : args.dynamic,
+    'moving_obstacle_speed' : 0.25,
+    'moving_init_direction' : -1,
+    'moving_init_axis' : 0,
+    'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
+    'max_steps_one_episode' : 1024,
+    'num_obstacles' : 6,
+    'prob_obstacles' : 0.5,
+    'obstacle_box_size' : [0.04,0.04,0.002],
+    'obstacle_sphere_radius' : 0.04,
+    'camera_args' : {
+        'placement' : 'duo',
+        'type' : 'rgb',
+        'prev_pos' : 0,
+        'visualize' : True,
+    },
+    'debug' : False,
+    }
+    
 
     # Separate evaluation env
     eval_env = Env(
@@ -147,7 +149,7 @@ if __name__=='__main__':
                        deterministic=True, render=False)
     
     # Save a checkpoint every ? steps
-    checkpoint_callback = CheckpointCallback(save_freq=250_000, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}/{args.name}',
+    checkpoint_callback = CheckpointCallback(save_freq=2e6/args.parallel_envs, save_path=f'./models/reach_ppo_ckp_logs/{params["camera_args"]["type"]}/{args.name}',
                                         name_prefix='reach')
     # Create the callback list
     callback = CallbackList([checkpoint_callback, callback_max_episodes, eval_callback])
@@ -163,7 +165,7 @@ if __name__=='__main__':
         features_extractor_class=CustomCombinedExtractor,
         features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
         )
-        model = PPO("MultiInputPolicy", env, n_steps= args.n_steps, gamma=0.991, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        model = PPO("MultiInputPolicy", env, n_steps= args.n_steps, gamma=0.983, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
         print('New model generated.')
     else:
         model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', n_steps= args.n_steps, gamma= 0.9718, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')

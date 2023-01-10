@@ -49,7 +49,7 @@ class Env(gym.Env):
             'placement' : 'duo', # tip, top, ring, ring_obs
             'type' : 'grayscale',
             'prev_pos' : 0,
-            'visualize' : False,
+            'visualize' : False,    
         },
         debug: bool = False,
         ):
@@ -146,11 +146,11 @@ class Env(gym.Env):
 
         # parameters of augmented targets for training
         if self.is_train: 
-            self.distance_threshold = 0.2
-            self.distance_threshold_last = 0.2
+            self.distance_threshold = 0.15
+            self.distance_threshold_last = 0.15
             self.distance_threshold_increment_p = 0.001
             self.distance_threshold_increment_m = 0.001
-            self.distance_threshold_max = 0.35
+            self.distance_threshold_max = 0.25
             self.distance_threshold_min = 0.001
         # parameters of augmented targets for testing
         else:
@@ -484,7 +484,7 @@ class Env(gym.Env):
         p.performCollisionDetection()
 
         if self.is_good_view:
-            time.sleep(0.02)
+            time.sleep(0.005)
                
         self.step_counter+=1
         # input("Press ENTER")
