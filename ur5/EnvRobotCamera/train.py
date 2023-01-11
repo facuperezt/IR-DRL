@@ -199,6 +199,7 @@ def make_env(rank: int, seed: int = 0) -> Callable:
             obstacle_sphere_radius=params['obstacle_sphere_radius'],
             camera_args=params['camera_args'],
             debug=params['debug'],
+            experiments=params['experiments'],
             )
         env = Monitor(env)
         env.seed(seed + rank)
@@ -260,7 +261,7 @@ if __name__=='__main__':
         #     'visualize' : False,
         # },
         debug=params['debug'],
-        experiments=params['experiments',]
+        experiments=params['experiments'],
         )
     eval_env = Monitor(eval_env)
     # load env
@@ -290,10 +291,10 @@ if __name__=='__main__':
         features_extractor_class=CustomCombinedExtractor,
         features_extractor_kwargs=dict(features_dim=128, cnn_dims= args.cnn_dims),
         )
-        model = PPO("MultiInputPolicy", env, n_steps= args.n_steps, gamma=0.983, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        model = PPO("MultiInputPolicy", env, n_steps= args.n_steps, gamma=0.9918651237, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
         print('New model generated.')
     else:
-        model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', n_steps= args.n_steps, gamma= 0.9718, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', n_steps= args.n_steps, gamma= 0.99, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
         print('Model loaded')
 #%%
     model.learn(
