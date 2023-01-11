@@ -357,6 +357,7 @@ class Env(gym.Env):
     
     def reset(self):
         self.number_of_resets +=1 
+        self.reward = 0
         p.resetSimulation()
         self.target_visual_shape_index = None
         self.obsts = []
@@ -559,7 +560,6 @@ class Env(gym.Env):
     
     
     def _reward(self):
-        reward = 0
         # distance between torch head and target postion
         self.distance = np.linalg.norm(np.asarray(list(self.current_pos))-np.asarray(self.target_position), ord=None)
         # print(self.distance)
@@ -584,50 +584,51 @@ class Env(gym.Env):
             for j in range(0,8):
                 if arrow[j] != arrow[j+1]:
                     shaking += 1
-        reward -= shaking*0.075        
+        self.reward -= shaking*0.075        
         # success
         is_success = False
         if out:
             self.terminated=True
-            reward += -5
+            self.reward += -5
         elif self.collided:
             self.terminated=True
-            reward += -10    
+            self.reward += -10    
         elif self.distance<self.distance_threshold:
             if self.experiment is None:
                 self.terminated=True
                 is_success = True
                 self.success_counter += 1
-                reward += 10
+                self.reward += 10
             else:
                 self.experiment['i'] += 1
                 if self.experiment['i'] < len(self.experiment['targets']):
                     self.target_position = self.experiment['targets'][self.experiment['i']]
-                    p.removeBody(self.target_visual_shape_index)
-                    target = p.createMultiBody(
-                                baseMass=0,
-                                baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.02, rgbaColor=[1,0,0,1]),
-                                basePosition=self.target_position,
-                                )
-                    self.target_visual_shape_index = target
+                    if self.is_render:
+                        p.removeBody(self.target_visual_shape_index)
+                        target = p.createMultiBody(
+                                    baseMass=0,
+                                    baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.02, rgbaColor=[1,0,0,1]),
+                                    basePosition=self.target_position,
+                                    )
+                        self.target_visual_shape_index = target
                     self.terminated = False
-                    reward += -0.01*self.distance
+                    self.reward += -0.01*self.distance
                 else:
                     self.terminated = True
                     is_success = True
                     self.success_counter += 1
-                    reward += len(self.experiment['targets']) * 10
+                    self.reward += len(self.experiment['targets']) * 10
         # not finish when reaches max steps
         elif self.step_counter>=self.max_steps_one_episode:
             self.terminated=True
-            reward += -1
+            self.reward += -1
         # this episode goes on
         else:
             self.terminated=False
-            reward += -0.01*self.distance
+            # print(f'{self.reward:.4f} - 0.01*{self.distance:.4f} = {self.reward - 0.01*self.distance:.4f}')
+            self.reward += -0.001*self.distance
 
-        if self.is_train and not self.collided and not out:
-            reward -= 3 * ((self.distance_threshold - self.distance_threshold_min)/(self.distance_threshold_max - self.distance_threshold_min))
+
 
         # if self.step_counter < 2 and self.collided and self.distance_threshold < self.distance_threshold_max/2:
         #     reward = 0
@@ -636,7 +637,7 @@ class Env(gym.Env):
               'bad_spawn_ratio': round(self.bad_spawn_counter/self.number_of_resets, 4),
             #   'out':out,
               'distance': round(self.distance, 4),
-              'reward': round(reward,4),
+              'reward': round(self.reward,4),
               'collided':self.collided, 
               'shaking':shaking,
               'is_success': is_success,
@@ -646,7 +647,7 @@ class Env(gym.Env):
         if self.terminated: 
             print(info)
             # logger.debug(info)
-        return self._get_obs(),reward,self.terminated,info
+        return self._get_obs(),self.reward,self.terminated,info
     
     def _get_obs(self):
         self.state[0:6] = self.current_joint_position[1:]
