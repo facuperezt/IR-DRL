@@ -23,6 +23,127 @@ CURRENT_PATH = os.path.abspath(__file__)
 sys.path.insert(0,os.path.dirname(CURRENT_PATH))
 from env import Env
 
+experiments = {
+    'one' : {
+        'obstacles': {
+            'one' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[-0.15, 0.35, 0.21]],
+        'start' : {
+            'pos' : [0.15, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },      
+    },
+    'two' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            }
+        },
+        'targets' : [[0.0, 0.35, 0.21], [-0.25, 0.35, 0.21]],
+        'start' : {
+            'pos' : [0.25, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+    'three' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'three' : {
+                'position' : [0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[0.075, 0.35, 0.21], [-0.075, 0.35, 0.21], [-0.3, 0.35, 0.21]],
+        'start' : {
+            'pos' : [0.3, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+    'one_reversed' : {
+        'obstacles': {
+            'one' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[0.15, 0.35, 0.21]],
+        'start' : {
+            'pos' : [-0.15, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },      
+    },
+    'two_reversed' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            }
+        },
+        'targets' : [[0.0, 0.35, 0.21], [0.25, 0.35, 0.21]],
+        'start' : {
+            'pos' : [-0.25, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+    'three_reversed' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'three' : {
+                'position' : [0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[-0.075, 0.35, 0.21], [0.075, 0.35, 0.21], [0.3, 0.35, 0.21]],
+        'start' : {
+            'pos' : [-0.3, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+}
+
 def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
     saves = os.listdir(folder)
     prev_steps = 0
@@ -45,7 +166,8 @@ def parse_args():
     parser.add_argument('--name', type= str, default='default')
     parser.add_argument('--load_at_steps', type= int, default= 0)
     parser.add_argument('--n_steps', type= int, default= 1024, help='Max steps per epoch')
-    parser.add_argument('-d', '--dynamic', action='store_true', help= 'If flag is present environment will generate a moving obstacle')
+    parser.add_argument('-d', '--dynamic', action='store_true', help= 'If flag is present the environment will generate a moving obstacle')
+    parser.add_argument('-fe', '--follow_effector', action='store_true', help='If flag is present the camera will track the effector')
 
     return parser.parse_args()
 
@@ -98,7 +220,7 @@ if __name__=='__main__':
     'moving_init_axis' : 0,
     'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
     'max_steps_one_episode' : 1024,
-    'num_obstacles' : 6,
+    'num_obstacles' : 12,
     'prob_obstacles' : 0.5,
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
@@ -107,8 +229,10 @@ if __name__=='__main__':
         'type' : 'rgb',
         'prev_pos' : 0,
         'visualize' : True,
+        'follow_effector' : args.follow_effector
     },
     'debug' : False,
+    'experiments' : experiments,
     }
     
 
@@ -136,6 +260,7 @@ if __name__=='__main__':
         #     'visualize' : False,
         # },
         debug=params['debug'],
+        experiments=params['experiments',]
         )
     eval_env = Monitor(eval_env)
     # load env
@@ -172,7 +297,7 @@ if __name__=='__main__':
         print('Model loaded')
 #%%
     model.learn(
-        total_timesteps=24e6,
+        total_timesteps=40e6,
         n_eval_episodes=64,
         callback=callback,
         )

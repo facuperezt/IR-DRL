@@ -18,6 +18,8 @@ CURRENT_PATH = os.path.abspath(__file__)
 sys.path.insert(0,os.path.dirname(CURRENT_PATH))
 from env import Env
 import glob
+from math_util import getOrientationFromDirectionalVector
+from random import choice
 
 def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
     saves = os.listdir(folder)
@@ -34,19 +36,140 @@ def get_last_save(folder='./models/reach_ppo_ckp_logs', prefix= 'reach'):
 
     return f'{folder}/{chosen_file}'
 
+experiments = {
+    'one' : {
+        'obstacles': {
+            'one' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[-0.15, 0.35, 0.2]],
+        'start' : {
+            'pos' : [0.15, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },      
+    },
+    'two' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            }
+        },
+        'targets' : [[0.0, 0.35, 0.2], [-0.25, 0.35, 0.2]],
+        'start' : {
+            'pos' : [0.25, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+    'three' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'three' : {
+                'position' : [0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[0.075, 0.35, 0.2], [-0.075, 0.35, 0.2], [-0.3, 0.35, 0.2]],
+        'start' : {
+            'pos' : [0.3, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+    'one_reversed' : {
+        'obstacles': {
+            'one' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[0.15, 0.35, 0.2]],
+        'start' : {
+            'pos' : [-0.15, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },      
+    },
+    'two_reversed' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            }
+        },
+        'targets' : [[0.0, 0.35, 0.2], [0.25, 0.35, 0.2]],
+        'start' : {
+            'pos' : [-0.25, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+    'three_reversed' : {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.0, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'three' : {
+                'position' : [0.15, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+        },
+        'targets' : [[-0.075, 0.35, 0.2], [0.075, 0.35, 0.2], [0.3, 0.35, 0.2]],
+        'start' : {
+            'pos' : [-0.3, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+         
+    },
+}
+
 params = {
     'is_render': True, 
     'is_good_view': True,
     'is_train' : False,
     'show_boundary' : True,
-    'add_moving_obstacle' : True,
+    'add_moving_obstacle' : False,
     'moving_obstacle_speed' : 0.45,
     'moving_init_direction' : -1,
     'moving_init_axis' : 0,
     'workspace' : [-0.4, 0.4, 0.3, 0.7, 0.2, 0.4],
     'max_steps_one_episode' : 1024,
-    'num_obstacles' : 3,
-    'prob_obstacles' : 0.7,
+    'num_obstacles' : 15,
+    'prob_obstacles' : 0.5,
     'obstacle_box_size' : [0.04,0.04,0.002],
     'obstacle_sphere_radius' : 0.04,
     'camera_args' : {
@@ -54,9 +177,31 @@ params = {
         'type' : 'rgb',
         'prev_pos' : 0,
         'visualize' : True,
+        'follow_effector' : False,
     },
     'debug' : False,
+    'experiment': {
+        'obstacles': {
+            'one' : {
+                'position' : [-0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            },
+            'two' : {
+                'position' : [0.1, 0.4, 0.25],
+                'orientation' : [0, 0.707, 0, 0.707],
+                'size' : [0.07, 0.10, 0.002],
+            }
+        },
+        'targets' : [[0.0, 0.35, 0.22], [-0.25, 0.35, 0.22]],
+        'start' : {
+            'pos' : [0.25, 0.35, 0.3],
+            'orn' : [np.pi,0,np.pi],
+        },
+    },
+    'experiments' : experiments,
 }
+
 
 
 if __name__=='__main__':
@@ -78,10 +223,12 @@ if __name__=='__main__':
         obstacle_sphere_radius=params['obstacle_sphere_radius'],
         camera_args=params['camera_args'],
         debug=params['debug'],
+        #experiment=params['experiment'],
+        experiments=params['experiments'],
         )
     # load drl model
-    # model = PPO.load('./models/reach_ppo_ckp_logs/rgb/reach_750_steps.zip', env=env)
-    model = PPO.load('../../from_server/rgb_duo/32_envs_v0/reach_16000000_steps.zip', env=env)
+    # model = PPO.load('../../from_server/models/reach_ppo_ckp_logs/rgbd/reach_66355200_steps.zip', env=env) # Still had LIDAR and obs_space (C, 130, 128)
+    model = PPO.load('../../from_server/rgb_duo/v5/reach_24000000_steps.zip', env=env)
     
     
     # top

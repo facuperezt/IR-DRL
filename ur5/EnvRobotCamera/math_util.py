@@ -220,8 +220,7 @@ def rotate_vector(v: Union[List, np.ndarray], q: Union[List, np.ndarray]) -> Lis
 
 
 if __name__ == '__main__':
-    q = np.array(getOrientationFromDirectionalVector([0,0,-2], [0,0,2]))
+    q = np.array(getOrientationFromDirectionalVector([0,1,0]))
     print(q)
-    print(rotate_vector([0,0,1], q))
     
     

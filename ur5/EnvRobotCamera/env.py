@@ -49,9 +49,12 @@ class Env(gym.Env):
             'placement' : 'duo', # tip, top, ring, ring_obs
             'type' : 'grayscale',
             'prev_pos' : 0,
-            'visualize' : False,    
+            'visualize' : False,
+            'follow_effector' : True,
         },
         debug: bool = False,
+        experiment: dict = None,
+        experiments: dict = None,
         ):
         '''
         is_render: start GUI
@@ -65,6 +68,8 @@ class Env(gym.Env):
         self.extra_obst = add_moving_obstacle
         self.camera_args = camera_args
         self.debug = debug
+        self.experiment = experiment
+        self.experiments = experiments
         if self.is_render:
             self.physicsClient = p.connect(p.GUI)
         else:
@@ -226,25 +231,14 @@ class Env(gym.Env):
         self.target_visual_shape_index = target
         obsts = []
         for i in range(self.num_obstacles):
-            obst_position = target_position
-            val = False
-            type = np.random.random()
-            rate = np.random.random()
-            if (rate < self.prob_obstacles) and (type > 0.5):
-                cc = 0
-                while not val:
-                    cc += 1
-                    rand = np.float32(np.random.rand(3,))
-                    obst_x = self.x_high_obs-rand[0]*(self.x_high_obs-self.x_low_obs)
-                    obst_y = self.y_high_obs-rand[1]*(self.y_high_obs-self.y_low_obs)
-                    obst_z = self.z_high_obs-rand[2]*(self.z_high_obs-self.z_low_obs)
-                    obst_position = [obst_x, obst_y, obst_z]
-                    diff = abs(np.asarray(target_position)-np.asarray(obst_position))
-                    diff_2 = abs(np.asarray(self.init_home)-np.asarray(obst_position))
-                    val = (diff>0.05).all() and (np.linalg.norm(diff)<0.5) and (diff_2>0.05).all() and (np.linalg.norm(diff_2)<0.5)
-                    if cc>100:
-                        val = True
-                if cc <= 100:
+            if True:
+                straight_path = add_list(target_position, self.current_pos, -1)
+                midpoint = add_list(self.current_pos, straight_path, 0.5)
+                obst_type = np.random.random()
+                obst_rate = np.random.random()
+                random_direction = (np.float32(np.random.rand(3,))- 0.5)
+                obst_position = add_list(midpoint, random_direction, 0.15)
+                if (obst_rate < self.prob_obstacles) and (obst_type > 0.5):
                     halfExtents = list(np.float32(np.random.uniform(0.8,1.2)*np.array(self.obstacle_box_size)))
                     obst_orientation = [[0.707, 0, 0, 0.707], [0, 0.707, 0, 0.707], [0, 0, 0.707, 0.707]]
                     obst_id = p.createMultiBody(
@@ -255,21 +249,7 @@ class Env(gym.Env):
                             baseOrientation=choice(obst_orientation)
                         )
                     obsts.append(obst_id)
-            if (rate < self.prob_obstacles) and (type <= 0.5):
-                cc = 0
-                while not val:
-                    cc += 1
-                    rand = np.float32(np.random.rand(3,))
-                    obst_x = self.x_high_obs-rand[0]*(self.x_high_obs-self.x_low_obs)
-                    obst_y = self.y_high_obs-rand[1]*0.5*(self.y_high_obs-self.y_low_obs)
-                    obst_z = self.z_high_obs-rand[2]*(self.z_high_obs-self.z_low_obs)
-                    obst_position = [obst_x, obst_y, obst_z]
-                    diff = abs(np.asarray(target_position)-np.asarray(obst_position))
-                    diff_2 = abs(np.asarray(self.init_home)-np.asarray(obst_position))
-                    val = (diff>0.05).all() and (np.linalg.norm(diff)<0.4) and (diff_2>0.05).all() and (np.linalg.norm(diff_2)<0.4)
-                    if cc>100:
-                        val = True
-                if cc <= 100:
+                elif (obst_rate < self.prob_obstacles) and (obst_type >= 0.5):
                     radius = np.float32(np.random.uniform(0.8,1.2))*self.obstacle_sphere_radius                
                     obst_id = p.createMultiBody(
                             baseMass=0,
@@ -278,6 +258,59 @@ class Env(gym.Env):
                             basePosition=obst_position,
                         )
                     obsts.append(obst_id)
+            else:
+                obst_position = target_position
+                val = False
+                type = np.random.random()
+                rate = np.random.random()
+                if (rate < self.prob_obstacles) and (type > 0.5):
+                    cc = 0
+                    while not val:
+                        cc += 1
+                        rand = np.float32(np.random.rand(3,))
+                        obst_x = self.x_high_obs-rand[0]*(self.x_high_obs-self.x_low_obs)
+                        obst_y = self.y_high_obs-rand[1]*(self.y_high_obs-self.y_low_obs)
+                        obst_z = self.z_high_obs-rand[2]*(self.z_high_obs-self.z_low_obs)
+                        obst_position = [obst_x, obst_y, obst_z]
+                        diff = abs(np.asarray(target_position)-np.asarray(obst_position))
+                        diff_2 = abs(np.asarray(self.init_home)-np.asarray(obst_position))
+                        val = (diff>0.05).all() and (np.linalg.norm(diff)<0.5) and (diff_2>0.05).all() and (np.linalg.norm(diff_2)<0.5)
+                        if cc>100:
+                            val = True
+                    if cc <= 100:
+                        halfExtents = list(np.float32(np.random.uniform(0.8,1.2)*np.array(self.obstacle_box_size)))
+                        obst_orientation = [[0.707, 0, 0, 0.707], [0, 0.707, 0, 0.707], [0, 0, 0.707, 0.707]]
+                        obst_id = p.createMultiBody(
+                                baseMass=0,
+                                baseVisualShapeIndex=self._create_visual_box(halfExtents),
+                                baseCollisionShapeIndex=self._create_collision_box(halfExtents),
+                                basePosition=obst_position,
+                                baseOrientation=choice(obst_orientation)
+                            )
+                        obsts.append(obst_id)
+                if (rate < self.prob_obstacles) and (type <= 0.5):
+                    cc = 0
+                    while not val:
+                        cc += 1
+                        rand = np.float32(np.random.rand(3,))
+                        obst_x = self.x_high_obs-rand[0]*(self.x_high_obs-self.x_low_obs)
+                        obst_y = self.y_high_obs-rand[1]*0.5*(self.y_high_obs-self.y_low_obs)
+                        obst_z = self.z_high_obs-rand[2]*(self.z_high_obs-self.z_low_obs)
+                        obst_position = [obst_x, obst_y, obst_z]
+                        diff = abs(np.asarray(target_position)-np.asarray(obst_position))
+                        diff_2 = abs(np.asarray(self.init_home)-np.asarray(obst_position))
+                        val = (diff>0.05).all() and (np.linalg.norm(diff)<0.4) and (diff_2>0.05).all() and (np.linalg.norm(diff_2)<0.4)
+                        if cc>100:
+                            val = True
+                    if cc <= 100:
+                        radius = np.float32(np.random.uniform(0.8,1.2))*self.obstacle_sphere_radius                
+                        obst_id = p.createMultiBody(
+                                baseMass=0,
+                                baseVisualShapeIndex=self._create_visual_sphere(radius),
+                                baseCollisionShapeIndex=self._create_collision_sphere(radius),
+                                basePosition=obst_position,
+                            )
+                        obsts.append(obst_id)
         return target_position, obsts                   
     
     def _add_moving_plate(self):
@@ -296,6 +329,31 @@ class Env(gym.Env):
                     )
         return obst_id
     
+    def _add_obstacles_experiment(self):
+        xp = self.experiment
+        obsts = []
+        for obstacle_name, obstacle in xp['obstacles'].items():
+            halfExtents = [np.random.uniform(0.7, 1.1) * s for s in obstacle['size']]
+            obst_position = obstacle['position']
+            obst_orientation = obstacle['orientation'] # [[0.707, 0, 0, 0.707], [0, 0.707, 0, 0.707], [0, 0, 0.707, 0.707]]
+            obst_id = p.createMultiBody(
+                            baseMass=0,
+                            baseVisualShapeIndex=self._create_visual_box(halfExtents),
+                            baseCollisionShapeIndex=self._create_collision_box(halfExtents),
+                            basePosition=obst_position,
+                            baseOrientation= obst_orientation,
+            )
+            obsts.append(obst_id)
+
+        target = p.createMultiBody(
+                    baseMass=0,
+                    baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.02, rgbaColor=[1,0,0,1]),
+                    basePosition=self.target_position,
+                    )
+        self.target_visual_shape_index = target
+
+        return obsts
+
     
     def reset(self):
         self.number_of_resets +=1 
@@ -315,7 +373,7 @@ class Env(gym.Env):
         self.step_counter = 0
         self.collided = False
         self.past_distance = deque([])
-        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 1.7, 0]), (self.high_obs/2 + self.low_obs/2).tolist(), fov= 60, is_training= self.is_train)
+        self.camera_robot = CameraRobot(self.urdf_root_path, self.base_position, np.array([0, 1.7, 0]), (self.high_obs/2 + self.low_obs/2).tolist(), fov= 50, is_training= self.is_train)
 
         #p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
         self.terminated=False
@@ -355,6 +413,13 @@ class Env(gym.Env):
         self.base_position = [0.0,-0.12,0.5]
         self.RobotUid = p.loadURDF(self.urdf_root_path, basePosition=self.base_position, baseOrientation=baseorn, useFixedBase=True)
         self.motionexec = MotionExecute(self.RobotUid, self.base_link, self.effector_link)
+        
+        if self.experiment is not None or self.experiments is not None:
+            if self.experiments is not None:
+                self.experiment = choice(list(self.experiments.values()))
+            self.init_home = self.experiment['start']['pos']
+            self.init_orn = self.experiment['start']['orn']
+        
         # robot goes to the initial position
         self.motionexec.go_to_target(self.init_home, self.init_orn)
 
@@ -363,7 +428,7 @@ class Env(gym.Env):
         self.current_orn = p.getLinkState(self.RobotUid,self.effector_link)[5]
 
         # get camera results 
-        self.image = self.camera_robot.move_camera(0, self.current_pos)
+        self.image = self.camera_robot.move_camera(0, self.current_pos if self.camera_args['follow_effector'] else None)
         # self.camera_robot.move_effector(0)
         # self.image = self.camera_robot.get_image(self.current_pos)
 
@@ -389,32 +454,34 @@ class Env(gym.Env):
                 self.distance_threshold = self.distance_threshold_min
             print ('current distance threshold: ', self.distance_threshold)
 
-        
-        while True:
-            
+        if self.experiment is None:
+            while True:
+                if self.target_visual_shape_index is not None:
+                    p.removeBody(self.target_visual_shape_index)
+                    self.target_visual_shape_index = None
+                for obst in self.obsts:
+                    p.removeBody(obst)
 
-            if self.target_visual_shape_index is not None:
-                p.removeBody(self.target_visual_shape_index)
-                self.target_visual_shape_index = None
-            for obst in self.obsts:
-                p.removeBody(obst)
+                self.target_position, self.obsts = self._add_obstacles()
 
-            self.target_position, self.obsts = self._add_obstacles()
+                if self.extra_obst:
+                    self.moving_xy = choice([0,1])
+                    self.barrier = self._add_moving_plate()
+                    self.obsts.append(self.barrier)
 
-            if self.extra_obst:
-                self.moving_xy = choice([0,1])
-                self.barrier = self._add_moving_plate()
-                self.obsts.append(self.barrier)
-
-            p.performCollisionDetection()
-            
-            # check collision
-            for i in range(len(self.obsts)):
-                contacts = p.getContactPoints(bodyA=self.RobotUid, bodyB=self.obsts[i])        
-                if len(contacts)>0:
+                p.performCollisionDetection()
+                
+                # check collision
+                for i in range(len(self.obsts)):
+                    contacts = p.getContactPoints(bodyA=self.RobotUid, bodyB=self.obsts[i])        
+                    if len(contacts)>0:
+                        break
+                else:
                     break
-            else:
-                break
+        else:
+            self.experiment['i'] = 0
+            self.target_position = self.experiment['targets'][self.experiment['i']]
+            self.obsts = self._add_obstacles_experiment()
 
         # do this step in pybullet
         # p.stepSimulation()
@@ -448,7 +515,7 @@ class Env(gym.Env):
                             current_rpy[2]+dyaw]
         self.motionexec.go_to_target(new_robot_pos, new_robot_rpy)
         
-        if self.extra_obst:
+        if self.extra_obst and self.experiment is None:
             barr_pos = np.asarray(p.getBasePositionAndOrientation(self.barrier)[0])
             if self.moving_xy == 0:
                 if barr_pos[0]>self.x_high_obs or barr_pos[0]<self.x_low_obs:
@@ -470,7 +537,7 @@ class Env(gym.Env):
         
  
         # get camera results 
-        self.image = self.camera_robot.move_camera(camera_vel, self.current_pos)
+        self.image = self.camera_robot.move_camera(camera_vel, self.current_pos if self.camera_args['follow_effector'] else None)
         # self.camera_robot.move_effector(camera_vel)
         # self.image = self.camera_robot.get_image(self.current_pos)
             
@@ -484,7 +551,7 @@ class Env(gym.Env):
         p.performCollisionDetection()
 
         if self.is_good_view:
-            time.sleep(0.005)
+            time.sleep(0.0005)
                
         self.step_counter+=1
         # input("Press ENTER")
@@ -525,12 +592,31 @@ class Env(gym.Env):
             reward += -5
         elif self.collided:
             self.terminated=True
-            reward += -10       
+            reward += -10    
         elif self.distance<self.distance_threshold:
-            self.terminated=True
-            is_success = True
-            self.success_counter += 1
-            reward += 10
+            if self.experiment is None:
+                self.terminated=True
+                is_success = True
+                self.success_counter += 1
+                reward += 10
+            else:
+                self.experiment['i'] += 1
+                if self.experiment['i'] < len(self.experiment['targets']):
+                    self.target_position = self.experiment['targets'][self.experiment['i']]
+                    p.removeBody(self.target_visual_shape_index)
+                    target = p.createMultiBody(
+                                baseMass=0,
+                                baseVisualShapeIndex=p.createVisualShape(shapeType=p.GEOM_SPHERE, radius=0.02, rgbaColor=[1,0,0,1]),
+                                basePosition=self.target_position,
+                                )
+                    self.target_visual_shape_index = target
+                    self.terminated = False
+                    reward += -0.01*self.distance
+                else:
+                    self.terminated = True
+                    is_success = True
+                    self.success_counter += 1
+                    reward += len(self.experiment['targets']) * 10
         # not finish when reaches max steps
         elif self.step_counter>=self.max_steps_one_episode:
             self.terminated=True
