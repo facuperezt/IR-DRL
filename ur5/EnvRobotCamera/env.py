@@ -612,7 +612,7 @@ class Env(gym.Env):
                                     )
                         self.target_visual_shape_index = target
                     self.terminated = False
-                    self.reward += -0.01*self.distance
+                    self.reward += -0.0001*self.distance
                 else:
                     self.terminated = True
                     is_success = True
@@ -626,7 +626,7 @@ class Env(gym.Env):
         else:
             self.terminated=False
             # print(f'{self.reward:.4f} - 0.01*{self.distance:.4f} = {self.reward - 0.01*self.distance:.4f}')
-            self.reward += 0
+            self.reward += 0.0001*self.distance
 
 
 
@@ -637,7 +637,7 @@ class Env(gym.Env):
               'bad_spawn_ratio': round(self.bad_spawn_counter/self.number_of_resets, 4),
             #   'out':out,
               'distance': round(self.distance, 4),
-              'reward': round(self.reward,4),
+              'reward': round(reward,4),
               'collided':self.collided, 
               'shaking':shaking,
               'is_success': is_success,
