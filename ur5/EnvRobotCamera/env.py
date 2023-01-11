@@ -612,7 +612,7 @@ class Env(gym.Env):
                                     )
                         self.target_visual_shape_index = target
                     self.terminated = False
-                    self.reward += -0.00001*self.distance
+                    self.reward += -0.0001*self.distance
                 else:
                     self.terminated = True
                     is_success = True
@@ -626,7 +626,7 @@ class Env(gym.Env):
         else:
             self.terminated=False
             # print(f'{self.reward:.4f} - 0.01*{self.distance:.4f} = {self.reward - 0.01*self.distance:.4f}')
-            self.reward += -0.00001*self.distance
+            self.reward += -0.0001*self.distance
 
 
 
