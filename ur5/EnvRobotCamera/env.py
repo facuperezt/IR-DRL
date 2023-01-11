@@ -637,7 +637,7 @@ class Env(gym.Env):
               'bad_spawn_ratio': round(self.bad_spawn_counter/self.number_of_resets, 4),
             #   'out':out,
               'distance': round(self.distance, 4),
-              'reward': round(reward,4),
+              'reward': round(self.reward,4),
               'collided':self.collided, 
               'shaking':shaking,
               'is_success': is_success,
