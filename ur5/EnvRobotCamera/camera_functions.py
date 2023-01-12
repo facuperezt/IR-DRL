@@ -143,7 +143,7 @@ class CameraRobot:
         self.image_height = image_height
         self.image_width = image_width
         # self.bahn = CameraRailRobotCircle(self.base_pos, radius= 0.5, z_height= 0.5, phi_min= np.pi, phi_max= 2*np.pi, phi_offset= 0, x_y_offset= [0, 0], phi= np.pi*3/2)
-        self.bahn = CameraRailRobotStraight(self.base_pos, add_list(self.target, self.base_pos, -1), 0.5, 0.8, 0.2)
+        self.bahn = CameraRailRobotStraight(self.base_pos, add_list(self.target, self.base_pos, -1), 0.5, 8, 0.2)
         self.is_training = is_training
 
         self.current_joint_position = None

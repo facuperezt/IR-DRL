@@ -217,10 +217,23 @@ def rotate_vector(v: Union[List, np.ndarray], q: Union[List, np.ndarray]) -> Lis
     return np.array([v_rotated[0,0], v_rotated[1,0], v_rotated[2,0]]).tolist()
 
     
-
+def expReward(x, u= 3, b= -12, a= 42, e= 0.25):
+    return u/(np.exp(-a*x) + e) + b
 
 if __name__ == '__main__':
-    q = np.array(getOrientationFromDirectionalVector([0,1,0]))
-    print(q)
+    x = np.linspace(0, 0.04, 100)
+    u = 3
+    b = -12
+    a = 42
+    e = 0.25
+    from matplotlib import pyplot as plt
+    plt.plot(x, expReward(x, u, b, a, e))
+    for point in [0.02, 0.1, 0.15, 0.2, 0.25]:
+        plt.plot(point, expReward(point, u, b, a, e), 'x', label = str(expReward(point, u, b, a, e)))
+    plt.grid()
+    plt.legend()
+    plt.show()
+
+
     
     

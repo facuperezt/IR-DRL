@@ -19,7 +19,7 @@ BASE = os.path.dirname(os.path.dirname(CURRENT_PATH))
 ROOT = os.path.dirname(BASE) 
 sys.path.insert(0,os.path.dirname(CURRENT_PATH))
 from pybullet_util import MotionExecute
-from math_util import quaternion_matrix, euler_from_matrix, euler_from_quaternion, directionalVectorsFromQuaternion, add_list
+from math_util import quaternion_matrix, euler_from_matrix, euler_from_quaternion, directionalVectorsFromQuaternion, add_list, expReward
 from rays_to_indicator import RaysCauculator
 from typing import Dict
 import tensorboard
@@ -248,7 +248,6 @@ class Env(gym.Env):
                             basePosition=obst_position,
                             baseOrientation=choice(obst_orientation)
                         )
-                    obsts.append(obst_id)
                 elif (obst_rate < self.prob_obstacles) and (obst_type >= 0.5):
                     radius = np.float32(np.random.uniform(0.8,1.2))*self.obstacle_sphere_radius                
                     obst_id = p.createMultiBody(
@@ -257,7 +256,10 @@ class Env(gym.Env):
                             baseCollisionShapeIndex=self._create_collision_sphere(radius),
                             basePosition=obst_position,
                         )
-                    obsts.append(obst_id)
+                else:
+                    continue
+                obsts.append(obst_id)
+                self.obsts_positions[obst_id] = obst_position
             else:
                 obst_position = target_position
                 val = False
@@ -327,6 +329,7 @@ class Env(gym.Env):
                         baseCollisionShapeIndex=self._create_collision_box([0.05,0.05,0.002]),
                         basePosition=pos
                     )
+        self.obsts_positions[obst_id] = pos
         return obst_id
     
     def _add_obstacles_experiment(self):
@@ -344,6 +347,7 @@ class Env(gym.Env):
                             baseOrientation= obst_orientation,
             )
             obsts.append(obst_id)
+            self.obsts_positions[obst_id] = obst_position
 
         target = p.createMultiBody(
                     baseMass=0,
@@ -358,9 +362,11 @@ class Env(gym.Env):
     def reset(self):
         self.number_of_resets +=1 
         self.reward = 0
+        self.min_dist = 10
         p.resetSimulation()
         self.target_visual_shape_index = None
         self.obsts = []
+        self.obsts_positions = {}
         # print(time.time())
         self.init_home, self.init_orn = self._set_home()
         # print(self.init_home, self.init_orn)
@@ -428,6 +434,7 @@ class Env(gym.Env):
         self.current_pos = p.getLinkState(self.RobotUid,self.effector_link)[4]
         self.current_orn = p.getLinkState(self.RobotUid,self.effector_link)[5]
 
+
         # get camera results 
         self.image = self.camera_robot.move_camera(0, self.current_pos if self.camera_args['follow_effector'] else None)
         # self.camera_robot.move_effector(0)
@@ -460,8 +467,9 @@ class Env(gym.Env):
                 if self.target_visual_shape_index is not None:
                     p.removeBody(self.target_visual_shape_index)
                     self.target_visual_shape_index = None
-                for obst in self.obsts:
-                    p.removeBody(obst)
+                for obst_id in self.obsts:
+                    p.removeBody(obst_id)
+                    del self.obsts_positions[obst_id]
 
                 self.target_position, self.obsts = self._add_obstacles()
 
@@ -476,6 +484,7 @@ class Env(gym.Env):
                 for i in range(len(self.obsts)):
                     contacts = p.getContactPoints(bodyA=self.RobotUid, bodyB=self.obsts[i])        
                     if len(contacts)>0:
+                        self.bad_spawn_counter += 1
                         break
                 else:
                     break
@@ -528,6 +537,7 @@ class Env(gym.Env):
                     self.direction = -self.direction                                
                 barr_pos[1] += self.direction*self.moving_obstacle_speed*dv
                 p.resetBasePositionAndOrientation(self.barrier, barr_pos, p.getBasePositionAndOrientation(self.barrier)[1])
+            self.obsts_positions[self.barrier] = barr_pos
         
         # update current pose
         self.current_pos = p.getLinkState(self.RobotUid,self.effector_link)[4]
@@ -535,12 +545,33 @@ class Env(gym.Env):
         self.current_joint_position = [0]
         for i in range(self.base_link, self.effector_link):
             self.current_joint_position.append(p.getJointState(bodyUniqueId=self.RobotUid, jointIndex=i)[0])
+
+        min_pseudo_dist = 10
+        for obst_id in self.obsts:
+            # get closest link
+            pseudo_dist = sum([abs(c) for c in add_list(self.current_pos, self.obsts_positions[obst_id], -1)])
+            if pseudo_dist < min_pseudo_dist:
+                min_pseudo_dist = pseudo_dist
+                closest_obst_id = obst_id
+
+        try:
+            closest_point = p.getClosestPoints(self.RobotUid, closest_obst_id, 0.2, self.effector_link)
+            if len(closest_point) > 0: closest_point = closest_point[0][8]
+            self.min_dist = min([self.min_dist, closest_point])
+        except TypeError as e:
+            print(e)
+
+
+            
+        
         
  
         # get camera results 
         self.image = self.camera_robot.move_camera(camera_vel, self.current_pos if self.camera_args['follow_effector'] else None)
         # self.camera_robot.move_effector(camera_vel)
         # self.image = self.camera_robot.get_image(self.current_pos)
+        # p.stepSimulation()
+        p.performCollisionDetection()
             
         # check collision
         for i in range(len(self.obsts)):
@@ -548,8 +579,6 @@ class Env(gym.Env):
             if len(contacts)>0:
                 self.collided = True
            
-        # p.stepSimulation()
-        p.performCollisionDetection()
 
         if self.is_good_view:
             time.sleep(0.0005)
@@ -561,6 +590,7 @@ class Env(gym.Env):
     
     def _reward(self):
         # distance between torch head and target postion
+        self.prev_distance = self.distance
         self.distance = np.linalg.norm(np.asarray(list(self.current_pos))-np.asarray(self.target_position), ord=None)
         # print(self.distance)
         # check if out of boundary      
@@ -584,7 +614,7 @@ class Env(gym.Env):
             for j in range(0,8):
                 if arrow[j] != arrow[j+1]:
                     shaking += 1
-        self.reward -= shaking*0.00075        
+        self.reward -= shaking*0.00075   
         # success
         is_success = False
         if out:
@@ -625,8 +655,11 @@ class Env(gym.Env):
         # this episode goes on
         else:
             self.terminated=False
-            # print(f'{self.reward:.4f} - 0.01*{self.distance:.4f} = {self.reward - 0.01*self.distance:.4f}')
-            self.reward += -0.0001*self.distance
+            self.reward += ((self.prev_distance - self.distance)/self.prev_distance) # reward for getting closer (can be understood as following a direct path to objective)
+
+        if self.terminated and not self.collided:
+            self.reward += expReward(self.min_dist)
+
 
 
 
@@ -635,8 +668,9 @@ class Env(gym.Env):
 
         info={'step':self.step_counter,
               'bad_spawn_ratio': round(self.bad_spawn_counter/self.number_of_resets, 4),
-            #   'out':out,
+              'out':out,
               'distance': round(self.distance, 4),
+              'min_distance': round(self.min_dist, 4),
               'reward': round(self.reward,4),
               'collided':self.collided, 
               'shaking':shaking,

@@ -224,11 +224,13 @@ if __name__=='__main__':
         camera_args=params['camera_args'],
         debug=params['debug'],
         #experiment=params['experiment'],
-        experiments=params['experiments'],
+        # experiments=params['experiments'],
         )
     # load drl model
     # model = PPO.load('../../from_server/models/reach_ppo_ckp_logs/rgbd/reach_66355200_steps.zip', env=env) # Still had LIDAR and obs_space (C, 130, 128)
-    model = PPO.load('../../from_server/rgb_duo/v5/reach_24000000_steps.zip', env=env)
+    # model = PPO.load(f'../../from_server/rgb/v5/reach_24000000_steps.zip', env=env)
+    # model = PPO.load(f'from_server/rgb/v5/reach_24000000_steps.zip', env=env)
+    model = PPO.load(f'../../from_server/rgb/experiments{"_follow_effector" if params["camera_args"]["follow_effector"] else ""}/reach_6000000_steps.zip', env=env)
     
     
     # top

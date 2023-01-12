@@ -261,7 +261,7 @@ if __name__=='__main__':
         #     'visualize' : False,
         # },
         debug=params['debug'],
-        #experiments=params['experiments'],
+        # experiments=params['experiments'],
         )
     eval_env = Monitor(eval_env)
     # load env
@@ -294,7 +294,9 @@ if __name__=='__main__':
         model = PPO("MultiInputPolicy", env, n_steps= args.n_steps, gamma=0.9918651237, policy_kwargs= policy_kwargs, batch_size=256, verbose=1, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
         print('New model generated.')
     else:
-        model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', n_steps= args.n_steps, gamma= 0.99, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        # model = PPO.load(f'./models/reach_ppo_ckp_logs/rgb/v5/reach_{args.load_at_steps}_steps.zip', n_steps= args.n_steps, gamma= 0.99, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        model = PPO.load(f'../../from_server/rgb/v5/reach_24000000_steps.zip', n_steps= args.n_steps, gamma= 0.987, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
+        # model = PPO.load(f'from_server/rgb/v5/reach_24000000_steps.zip', n_steps= args.n_steps, gamma= 0.99, env=env, tensorboard_log=f'./models/reach_ppo_tf_logs/{params["camera_args"]["type"]}/{args.name}')
         print('Model loaded')
 #%%
     model.learn(
