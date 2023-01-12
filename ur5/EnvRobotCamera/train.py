@@ -199,7 +199,7 @@ def make_env(rank: int, seed: int = 0) -> Callable:
             obstacle_sphere_radius=params['obstacle_sphere_radius'],
             camera_args=params['camera_args'],
             debug=params['debug'],
-            experiments=params['experiments'],
+            # experiments=params['experiments'],
             )
         env = Monitor(env)
         env.seed(seed + rank)
