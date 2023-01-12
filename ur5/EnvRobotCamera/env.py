@@ -556,8 +556,9 @@ class Env(gym.Env):
 
         try:
             closest_point = p.getClosestPoints(self.RobotUid, closest_obst_id, 0.2, self.effector_link)
-            if len(closest_point) > 0: closest_point = closest_point[0][8]
-            self.min_dist = min([self.min_dist, closest_point])
+            if len(closest_point) > 0:
+                closest_point = closest_point[0][8]
+                self.min_dist = min([self.min_dist, closest_point])
         except TypeError as e:
             print(e)
 
