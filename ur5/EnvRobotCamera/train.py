@@ -199,7 +199,7 @@ def make_env(rank: int, seed: int = 0) -> Callable:
             obstacle_sphere_radius=params['obstacle_sphere_radius'],
             camera_args=params['camera_args'],
             debug=params['debug'],
-            # experiments=params['experiments'],
+            experiments=params['experiments'],
             )
         env = Monitor(env)
         env.seed(seed + rank)
@@ -233,7 +233,7 @@ if __name__=='__main__':
         'follow_effector' : args.follow_effector
     },
     'debug' : False,
-    #'experiments' : experiments,
+    'experiments' : experiments,
     }
     
 
@@ -261,7 +261,7 @@ if __name__=='__main__':
         #     'visualize' : False,
         # },
         debug=params['debug'],
-        #experiments=params['experiments'],
+        experiments=params['experiments'],
         )
     eval_env = Monitor(eval_env)
     # load env
