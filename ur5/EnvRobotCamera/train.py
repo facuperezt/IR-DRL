@@ -233,7 +233,7 @@ if __name__=='__main__':
         'follow_effector' : args.follow_effector
     },
     'debug' : False,
-    'experiments' : experiments,
+    #'experiments' : experiments,
     }
     
 
@@ -261,7 +261,7 @@ if __name__=='__main__':
         #     'visualize' : False,
         # },
         debug=params['debug'],
-        experiments=params['experiments'],
+        #experiments=params['experiments'],
         )
     eval_env = Monitor(eval_env)
     # load env
