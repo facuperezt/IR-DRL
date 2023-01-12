@@ -233,7 +233,7 @@ if __name__=='__main__':
         'follow_effector' : args.follow_effector
     },
     'debug' : False,
-    'experiments' : experiments,
+    'experiments' : None,#experiments,
     }
     
 
