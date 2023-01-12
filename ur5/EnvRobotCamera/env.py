@@ -631,7 +631,7 @@ class Env(gym.Env):
                 self.terminated=True
                 is_success = True
                 self.success_counter += 1
-                self.reward += 10
+                self.reward += 15
             else:
                 self.experiment['i'] += 1
                 if self.experiment['i'] < len(self.experiment['targets']):
@@ -650,7 +650,7 @@ class Env(gym.Env):
                     self.terminated = True
                     is_success = True
                     self.success_counter += 1
-                    self.reward += len(self.experiment['targets']) * 10
+                    self.reward += len(self.experiment['targets']) * 12.5
         # not finish when reaches max steps
         elif self.step_counter>=self.max_steps_one_episode:
             self.terminated=True
