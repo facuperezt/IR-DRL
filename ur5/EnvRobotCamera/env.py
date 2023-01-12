@@ -560,7 +560,9 @@ class Env(gym.Env):
                 closest_point = closest_point[0][8]
                 self.min_dist = min([self.min_dist, closest_point])
         except TypeError as e:
-            print(e)
+            pass
+        except UnboundLocalError as e:
+            pass
 
 
             
