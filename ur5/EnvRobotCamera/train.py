@@ -261,7 +261,7 @@ if __name__=='__main__':
         #     'visualize' : False,
         # },
         debug=params['debug'],
-        # experiments=params['experiments'],
+        experiments=params['experiments'],
         )
     eval_env = Monitor(eval_env)
     # load env
