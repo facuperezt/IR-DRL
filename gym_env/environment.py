@@ -189,13 +189,13 @@ class ModularDRLEnv(gym.Env):
                                            add_to_logging=True,
                                            max_steps=self.max_steps_per_episode,
                                            continue_after_success=False, 
-                                           reward_success=10,
-                                           reward_collision=-10,
+                                           reward_success=15,
+                                           reward_collision=-12.5,
                                            reward_distance_mult=-0.01,
                                            dist_threshold_start=0.35,
-                                           dist_threshold_end=0.01,
+                                           dist_threshold_end=0.002,
                                            dist_threshold_increment_start=0.02,
-                                           dist_threshold_increment_end=0.008,
+                                           dist_threshold_increment_end=0.002,
                                            dist_threshold_overwrite=dist_threshold_overwrite)
         self.goals.append(ur5_1_goal)
         ur5_1.set_goal(ur5_1_goal)

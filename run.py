@@ -13,9 +13,9 @@ from custom_policies.dropout_policy import DropoutMultiInputActorCriticPolicy, C
 # for now all the settings are done by hand here
 
 script_parameters = {
-    "train": False,
+    "train": True,
     "logging": 1,  # 0: no logging at all, 1: console output on episode end (default as before), 2: same as one 1 + entire log for episode put into csv file at episode end; if max_episodes is not -1 then the csv will contain the data for all episodes
-    "timesteps": 15e6,
+    "timesteps": 25e6,
     "max_steps_per_episode": 128,
     "max_episodes": 30,  # num episodes for eval
     "save_freq": 3e4,
@@ -27,8 +27,8 @@ script_parameters = {
     "sim_step": 1 / 240,  # seconds that pass per env step
     "normalize_observations": False,
     "normalize_rewards": False,
-    "gamma": 0.9881,
-    "dist_threshold_overwrite": 0.15,  # use this when continuing training to set the distance threhsold to the value that your agent had already reached
+    "gamma": 0.9889,
+    "dist_threshold_overwrite": 0.35,  # use this when continuing training to set the distance threhsold to the value that your agent had already reached
     "stat_buffer_size": 100,  # number of past episodes for averaging success metrics
     "tensorboard_folder": "./models/tensorboard_logs/",
     "custom_policy" : DropoutMultiInputActorCriticPolicy, # "MultiInputPolicy",
