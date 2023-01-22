@@ -13,7 +13,7 @@ from custom_policies.dropout_policy import DropoutMultiInputActorCriticPolicy, C
 # for now all the settings are done by hand here
 
 script_parameters = {
-    "train": False,
+    "train": True,
     "logging": 1,  # 0: no logging at all, 1: console output on episode end (default as before), 2: same as one 1 + entire log for episode put into csv file at episode end; if max_episodes is not -1 then the csv will contain the data for all episodes
     "timesteps": 25e6,
     "max_steps_per_episode": 128,
@@ -38,7 +38,7 @@ script_parameters = {
         features_extractor_kwargs=dict(cnn_out_channels= [16,32,32], features_dim=32,),
         ),  # custom NN sizes, e.g. dict(activation_fn=torch.nn.ReLU, net_arch=[256, dict(vf=[256, 256], pi=[128, 128])])
     "ppo_steps": 256,  # steps per env until PPO updates
-    "batch_size": 512,  # batch size for the ppo updates
+    "batch_size": 1024,  # batch size for the ppo updates
     "load_model": False,  # set to True when loading an existing model 
     "model_path": './models_bennoEnv/weights/PPO_floating_fe_0_23040000_steps',  # path for the model when loading one, also used for the eval model when train is set to False
 }
