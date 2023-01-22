@@ -12,6 +12,7 @@ from world.obstacles.obstacle import Obstacle
 from world.obstacles.maze.maze import MazeObstacle
 from world.obstacles.shelf.shelf import ShelfObstacle
 from world.obstacles.urdf_object import URDFObject
+from typing import List
 
 __all__ = [
     'GeneratedWorld'
@@ -60,9 +61,9 @@ class GeneratedWorld(World):
     The obstacles will be placed between the p
     Depending on the configuration, some of these can be moving in various directions at various speeds
     """
-    obstacle_objects: list[Obstacle] = []
+    obstacle_objects: List[Obstacle] = []
 
-    def __init__(self, workspace_boundaries: list=[-0.4, 0.4, 0.3, 0.7, 0.2, 0.5], 
+    def __init__(self, workspace_boundaries: List=[-0.4, 0.4, 0.3, 0.7, 0.2, 0.5], 
                        sim_step: float=1/240 ):
         """
         :param workspace_boundaries: List of 6 floats containing the bounds of the workspace in the following order: xmin, xmax, ymin, ymax, zmin, zmax
@@ -126,7 +127,7 @@ class GeneratedWorld(World):
         self.position_targets.append([0,0,0])
         return self.position_targets
 
-    def create_rotation_target(self) -> list:
+    def create_rotation_target(self) -> List:
         return None  # TODO for later, just adding this so that the world starts
 
     def build_visual_aux(self):
