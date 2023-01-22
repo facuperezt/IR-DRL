@@ -13,7 +13,7 @@ from custom_policies.dropout_policy import DropoutMultiInputActorCriticPolicy, C
 # for now all the settings are done by hand here
 
 script_parameters = {
-    "train": True,
+    "train": False,
     "logging": 1,  # 0: no logging at all, 1: console output on episode end (default as before), 2: same as one 1 + entire log for episode put into csv file at episode end; if max_episodes is not -1 then the csv will contain the data for all episodes
     "timesteps": 25e6,
     "max_steps_per_episode": 128,
@@ -57,7 +57,7 @@ env_config_train = {
     "normalize_rewards": script_parameters["normalize_rewards"],
     "dist_threshold_overwrite": script_parameters["dist_threshold_overwrite"],
     "display": False,
-    "display_extra": False
+    "display_extra": True
 }
 
 env_config_eval = {

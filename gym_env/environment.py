@@ -165,9 +165,9 @@ class ModularDRLEnv(gym.Env):
         #                                     indicator=True)
 
         
-        ur5_1_camera_sensor = CameraRegistry.get('Floating_FollowEffector')(
-                                                    ur5_1,
+        ur5_1_camera_sensor = CameraRegistry.get('Floating_General')(
                                                     [0, 1, 0.5],
+                                                    [0, 0.5, 0.35],
                                                     camera_args={
                                                         'fov' : 45,
                                                         'aspect' : 4,
@@ -310,7 +310,7 @@ class ModularDRLEnv(gym.Env):
         if self.show_auxillary_geometry_world:
             self.world.build_visual_aux()
         if self.show_auxillary_geometry_goal:
-            for goal in self.goals:
+            for goal in self.goals: 
                 goal.build_visual_aux()
 
         # turn rendering back on
