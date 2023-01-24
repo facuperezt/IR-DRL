@@ -6,7 +6,8 @@ import pybullet as pyb
 from functools import reduce
 
 __all__ = [
-    'PositionCollisionGoal'
+    'PositionCollisionGoal',
+    'PositionCollisionGoal_Extended'
 ]
 
 class PositionCollisionGoal(Goal):
@@ -251,17 +252,16 @@ class PositionCollisionGoal_Extended(PositionCollisionGoal):
         self.normalize_rewards_extended = normalize_rewards
         self.last_positions = []
 
-    def reward(self, action, step):
-        reward, is_success, done, timeout, out_of_bounds = super().reward(self, action, step)
+    def reward(self, step, action):
+        reward, is_success, done, timeout, out_of_bounds = super().reward(step, action)
 
-        self.past_positions.insert(0, self.robot.position_rotation_sensor.position)
-        self.past_positions = self.past_positions[:10]
-        if len(self.past_positions) > 1:
-            smoothness = [a - b for a,b in zip(self.past_positions[:-1], self.past_positions[1:])]
+        reward -= np.sum(np.array(action)**2 / 10)
         
         self.reward_value = reward
         if self.normalize_rewards_extended:
             self.reward_value = self.normalizing_constant_a_reward * self.reward_value + self.normalizing_constant_b_reward
+
+        return self.reward_value, is_success, done, timeout, out_of_bounds
 
 
     def get_observation(self) -> dict:

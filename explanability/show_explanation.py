@@ -130,30 +130,54 @@ class VisualizeExplanations:
 
 
 
-        fig, (ax_action, ax_value) = plt.subplots(1,2)
+        fig, (ax_action, ax_value) = plt.subplots(1,2,)
         self.open_figs.append((fig, (ax_action, ax_value)))
         self.rects = {'action': [], 'value': []}
 
         idx = torch.arange(self.explainer.env.action_space.shape[0])
-        bottoms = [0]* len(contribution_split.keys())
-        for (label, contribs), bottom in zip(contribution_split.items(), bottoms):
-            self.rects['action'].append(ax_action.bar(idx, contribs, label= label, alpha= 0.7))
+        bottoms = [[0]* self.explainer.env.action_space.shape[0]]*2
+        for label, contribs in contribution_split.items():
+            self.rects['action'].append(ax_action.bar(idx, contribs, label= label, alpha= 0.7, bottom= self._prepare_bottoms(contribs, bottoms)))
+            bottoms = self._process_bottoms(contribs, bottoms)
         
         ax_action.set_xticks(idx)
         ax_action.set_xticklabels([f'Joint {i}' for i in idx], rotation=65)
         ax_action.set_xlabel('Joint number')
         ax_action.set_ylabel('Contribution per sensor')
+        ax_action.set_ylim([-10, 10])
         ax_action.legend()
+        
         for i in range(len(val_split)):
-            self.rects['value'].append(ax_value.bar([idx.max()/2], val_split[i], alpha= 0.7))
+            self.rects['value'].append(ax_value.bar([idx.max()/2], val_split[i]/sum(val_split), alpha= 0.7))
 
-        ax_value.set_xticks([idx.max()/2])
-        ax_value.set_xticklabels(['Value Function'])
+        ax_value.set_xticks([(idx.max()/2) - 1, (idx.max()/2) + 1])
+        ax_value.set_xticklabels(['Negative Value', 'Positive Value'])
+        ax_value.set_ylabel('Percentage contribution')
         ax_value.set_xlim(ax_action.get_xlim())
 
-        plt.pause(0.0001)
+        plt.draw()
+        plt.pause(0.1)
 
         return self.open_figs[-1]
+
+    def _prepare_bottoms(self, contribs, bottoms):
+        bottoms_to_use = []
+        for i, contrib in enumerate(contribs):
+            sign = 0 if contrib < 0 else 1
+            bottoms_to_use.append(bottoms[sign][i])
+
+        return bottoms_to_use
+
+    def _process_bottoms(self, contribs, bottoms):
+        neg = bottoms[0].copy()
+        pos = bottoms[1].copy()
+        for i,contrib in enumerate(contribs):
+            if contrib >= 0:
+                pos[i] += contrib
+            else:
+                neg[i] += contrib
+        return [neg, pos]
+
   
     def update_contibution_chart(self, obs, fig = None, axs = None):
         val_features = self.explainer.explain_value_net(obs).squeeze()
@@ -168,16 +192,20 @@ class VisualizeExplanations:
             for sensor_name, contribution in zip(self.explainer.feature_indices.keys(), contributions):
                 contribution_split.setdefault(sensor_name, []).append(contribution)
 
+        bottoms = [[0]* self.explainer.env.action_space.shape[0]]*2
         for rects, contribs in zip(self.rects['action'], contribution_split.values()):
-            for rect, contrib in zip(rects, contribs):
+            corrected_bottoms = self._prepare_bottoms(contribs, bottoms)
+            for rect, contrib, bottom in zip(rects, contribs, corrected_bottoms):
+                rect.set_y(bottom)
                 rect.set_height(contrib)
+            bottoms = self._process_bottoms(contribs, bottoms)
         
         for rects in self.rects['value']:
             for rect, val in zip(rects, val_split):
                 rect.set_height(val)
 
-        fig.canvas.draw()
-        plt.pause(0.0001)
+        plt.draw()
+        plt.pause(0.1)
 
 
     def close_open_figs(self):

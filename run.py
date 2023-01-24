@@ -117,18 +117,17 @@ if __name__ == "__main__":
         explainer = ExplainPPO(env, model, extractor_bias= 'camera')
         exp_visualizer = VisualizeExplanations(explainer, type_of_data= 'rgbd')
         model.policy.eval()
-        print(model.policy)
         while True:
             obs = env.reset()
-            # exp_visualizer.close_open_figs()
+            exp_visualizer.close_open_figs()
             # fig, axs = exp_visualizer.start_imshow_from_obs(obs, value_or_action='action', grad_outputs=torch.eye(6)[[5]])
-            # fig, axs = exp_visualizer.start_contibution_chart(obs)
+            fig, axs = exp_visualizer.start_contibution_chart(obs)
             done = False
             while not done:
-                obs['camera_rgbd_default_floating'] = torch.zeros_like(torch.tensor(obs['camera_rgbd_default_floating'])).numpy()
+                # obs['camera_rgbd_default_floating'] = torch.zeros_like(torch.tensor(obs['camera_rgbd_default_floating'])).numpy()
                 act = model.predict(obs)[0]
                 obs, reward, done, info = env.step(act)
                 # exp_visualizer.update_imshow_from_obs(obs, fig, axs, grad_outputs=torch.eye(6)[[5]])
-                # exp_visualizer.update_contibution_chart(obs, fig, axs)
+                exp_visualizer.update_contibution_chart(obs, fig, axs)
 
 

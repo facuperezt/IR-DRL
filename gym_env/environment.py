@@ -165,6 +165,16 @@ class ModularDRLEnv(gym.Env):
         #                                     indicator=True)
 
         
+        # ur5_1_camera_sensor = CameraRegistry.get('Floating_FollowEffector')(
+        #                                             ur5_1,
+        #                                             [0, 1, 0.5],
+        #                                             camera_args={
+        #                                                 'fov' : 45,
+        #                                                 'aspect' : 4,
+        #                                                 'type': 'rgbd',
+        #                                                 'height' : 64,
+        #                                                 'width' : 128},
+        #                                             )
         ur5_1_camera_sensor = CameraRegistry.get('Floating_General')(
                                                     [0, 1, 0.5],
                                                     [0, 0.5, 0.35],
@@ -182,7 +192,7 @@ class ModularDRLEnv(gym.Env):
         # at this point we would generate all the goals needed and assign them to their respective robots
         # however, for the moment we simply generate the one we want for testing
         self.goals = []
-        ur5_1_goal = GoalRegistry.get('PositionCollision')(robot=ur5_1,
+        ur5_1_goal = GoalRegistry.get('PositionCollision_ext')(robot=ur5_1,
                                            normalize_rewards=self.normalize_rewards,
                                            normalize_observations=self.normalize_observations,
                                            train=self.train,
