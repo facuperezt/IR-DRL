@@ -20,7 +20,7 @@ script_parameters = {
     "max_episodes": 30,  # num episodes for eval
     "save_freq": 3e4,
     "save_folder": "./models/weights",
-    "save_name": "PPO_Floating_rgbd",  # name for the model file, this will get automated later on
+    "save_name": "PPO_Floating_rgbd_smoothed",  # name for the model file, this will get automated later on
     "num_envs": 48,
     "use_physics_sim": True,  # use actual physics sim or ignore forces and teleport robot to desired poses
     "control_mode": 1,  # robot controlled by inverse kinematics (0), joint angles (1) or joint velocities (2)
