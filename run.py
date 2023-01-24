@@ -13,7 +13,7 @@ from custom_policies.dropout_policy import DropoutMultiInputActorCriticPolicy, C
 # for now all the settings are done by hand here
 
 script_parameters = {
-    "train": False,
+    "train": True,
     "logging": 1,  # 0: no logging at all, 1: console output on episode end (default as before), 2: same as one 1 + entire log for episode put into csv file at episode end; if max_episodes is not -1 then the csv will contain the data for all episodes
     "timesteps": 25e6,
     "max_steps_per_episode": 128,
@@ -28,18 +28,18 @@ script_parameters = {
     "normalize_observations": False,
     "normalize_rewards": False,
     "gamma": 0.9889,
-    "dist_threshold_overwrite": 0.03,  # use this when continuing training to set the distance threhsold to the value that your agent had already reached
+    "dist_threshold_overwrite": None,  # use this when continuing training to set the distance threhsold to the value that your agent had already reached
     "stat_buffer_size": 100,  # number of past episodes for averaging success metrics
     "tensorboard_folder": "./models/tensorboard_logs/",
     "custom_policy" : DropoutMultiInputActorCriticPolicy, # "MultiInputPolicy",
     "custom_policy_args": dict(
-        dropout_rate = 0.5,
+        dropout_rate = 0.33,
         features_extractor_class=CustomizableFeaturesExtractor,
-        features_extractor_kwargs=dict(cnn_out_channels= [16,32,32], features_dim=32,),
+        features_extractor_kwargs=dict(cnn_out_channels= [8,16,32], features_dim=32,),
         ),  # custom NN sizes, e.g. dict(activation_fn=torch.nn.ReLU, net_arch=[256, dict(vf=[256, 256], pi=[128, 128])])
     "ppo_steps": 256,  # steps per env until PPO updates
-    "batch_size": 1024,  # batch size for the ppo updates
-    "load_model": True,  # set to True when loading an existing model 
+    "batch_size": 2048,  # batch size for the ppo updates
+    "load_model": False,  # set to True when loading an existing model 
     "model_path": './models_bennoEnv/weights/PPO_floating_fe_0_28800000_steps',  # path for the model when loading one, also used for the eval model when train is set to False
 }
 
@@ -114,20 +114,20 @@ if __name__ == "__main__":
         else:
             model = PPO.load(script_parameters["model_path"], env=env)
 
-        explainer = ExplainPPO(env, model, extractor_bias= 'camera')
-        exp_visualizer = VisualizeExplanations(explainer, type_of_data= 'rgbd')
+        # explainer = ExplainPPO(env, model, extractor_bias= 'camera')
+        # exp_visualizer = VisualizeExplanations(explainer, type_of_data= 'rgbd')
         model.policy.eval()
         while True:
             obs = env.reset()
-            exp_visualizer.close_open_figs()
+            # exp_visualizer.close_open_figs()
             # fig, axs = exp_visualizer.start_imshow_from_obs(obs, value_or_action='action', grad_outputs=torch.eye(6)[[5]])
-            fig, axs = exp_visualizer.start_contibution_chart(obs)
+            # fig, axs = exp_visualizer.start_contibution_chart(obs)
             done = False
             while not done:
                 # obs['camera_rgbd_default_floating'] = torch.zeros_like(torch.tensor(obs['camera_rgbd_default_floating'])).numpy()
                 act = model.predict(obs)[0]
                 obs, reward, done, info = env.step(act)
                 # exp_visualizer.update_imshow_from_obs(obs, fig, axs, grad_outputs=torch.eye(6)[[5]])
-                exp_visualizer.update_contibution_chart(obs, fig, axs)
+                # exp_visualizer.update_contibution_chart(obs, fig, axs)
 
 
