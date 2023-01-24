@@ -258,7 +258,7 @@ class PositionCollisionGoal_Extended(PositionCollisionGoal):
         reward -= np.sum(np.array(action)**2 / (len(action)/1.5))
 
         if step < 20 and out_of_bounds:
-            reward -= self.reward_collision /2
+            reward += self.reward_collision /2
         
         self.reward_value = reward
         if self.normalize_rewards_extended:
