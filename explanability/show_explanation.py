@@ -115,6 +115,72 @@ class VisualizeExplanations:
         data = self.explainer.explain_extractor(obs, value_or_action= self.value_or_action, **kwargs)
         return self.update_imshow(data, fig, axs)
 
+    def start_contibution_chart(self, obs):
+        val_features = self.explainer.explain_value_net(obs).squeeze()
+        val_split = [val_features[inds] for inds in self.explainer.feature_indices.values()]
+        action_split = {}
+        for i in range(self.explainer.env.action_space.shape[0]):
+            tmp = self.explainer.explain_action_net(obs, grad_outputs=torch.eye(self.explainer.env.action_space.shape[0])[[i]]).squeeze()
+            action_split[i] = [tmp[inds].sum() for inds in self.explainer.feature_indices.values()]
+
+        contribution_split = {}
+        for joint_action, contributions in action_split.items():
+            for sensor_name, contribution in zip(self.explainer.feature_indices.keys(), contributions):
+                contribution_split.setdefault(sensor_name, []).append(contribution)
+
+
+
+        fig, (ax_action, ax_value) = plt.subplots(1,2)
+        self.open_figs.append((fig, (ax_action, ax_value)))
+        self.rects = {'action': [], 'value': []}
+
+        idx = torch.arange(self.explainer.env.action_space.shape[0])
+        bottoms = [0]* len(contribution_split.keys())
+        for (label, contribs), bottom in zip(contribution_split.items(), bottoms):
+            self.rects['action'].append(ax_action.bar(idx, contribs, label= label, alpha= 0.7))
+        
+        ax_action.set_xticks(idx)
+        ax_action.set_xticklabels([f'Joint {i}' for i in idx], rotation=65)
+        ax_action.set_xlabel('Joint number')
+        ax_action.set_ylabel('Contribution per sensor')
+        ax_action.legend()
+        for i in range(len(val_split)):
+            self.rects['value'].append(ax_value.bar([idx.max()/2], val_split[i], alpha= 0.7))
+
+        ax_value.set_xticks([idx.max()/2])
+        ax_value.set_xticklabels(['Value Function'])
+        ax_value.set_xlim(ax_action.get_xlim())
+
+        plt.pause(0.0001)
+
+        return self.open_figs[-1]
+  
+    def update_contibution_chart(self, obs, fig = None, axs = None):
+        val_features = self.explainer.explain_value_net(obs).squeeze()
+        val_split = [val_features[inds].sum() for inds in self.explainer.feature_indices.values()]
+        action_split = {}
+        for i in range(self.explainer.env.action_space.shape[0]):
+            tmp = self.explainer.explain_action_net(obs, grad_outputs=torch.eye(self.explainer.env.action_space.shape[0])[[i]]).squeeze()
+            action_split[i] = [tmp[inds].sum() for inds in self.explainer.feature_indices.values()]
+
+        contribution_split = {}
+        for joint_action, contributions in action_split.items():
+            for sensor_name, contribution in zip(self.explainer.feature_indices.keys(), contributions):
+                contribution_split.setdefault(sensor_name, []).append(contribution)
+
+        for rects, contribs in zip(self.rects['action'], contribution_split.values()):
+            for rect, contrib in zip(rects, contribs):
+                rect.set_height(contrib)
+        
+        for rects in self.rects['value']:
+            for rect, val in zip(rects, val_split):
+                rect.set_height(val)
+
+        fig.canvas.draw()
+        plt.pause(0.0001)
+
+
     def close_open_figs(self):
         for fig in self.open_figs:
             plt.close(fig[0])
+        self.open_figs = []
