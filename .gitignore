@@ -6,6 +6,15 @@
 
 # Created by https://www.gitignore.io/api/macos,linux,django,python,pycharm
 
+### personal YAML configs ###
+configs/*benno*
+configs/*kai*
+configs/*karim*
+
+# exclude the generated urdfs from maze and shelf class
+/world/obstacles/shelf/*shelf*.urdf
+/world/obstacles/maze/*maze*.urdf
+
 ### Models ###
 models/
 models_on_body/

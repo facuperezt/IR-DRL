@@ -14,11 +14,9 @@ class RandomObstacleWorld(World):
     The obstacles will be placed between the p
     Depending on the configuration, some of these can be moving in various directions at various speeds
     """
-
-    def __init__(self, workspace_boundaries: list=[-0.4, 0.4, 0.3, 0.7, 0.2, 0.5], 
-                       robot_base_positions: list=[np.array([0.0, -0.12, 0.5])],
-                       robot_base_orientations: list=[np.array([0, 0, 0, 1])],
-                       sim_step: float=1/240,
+    def __init__(self, workspace_boundaries: list, 
+                       sim_step: float,
+                       env_id: int,
                        num_static_obstacles: int=3, 
                        num_moving_obstacles: int=1,
                        box_measurements: list=[0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125],
@@ -28,6 +26,7 @@ class RandomObstacleWorld(World):
                        moving_obstacles_trajectory_length: list=[0.05, 0.75]
                        ):
         """
+        The world config contains the following parameters:
         :param workspace_boundaries: List of 6 floats containing the bounds of the workspace in the following order: xmin, xmax, ymin, ymax, zmin, zmax
         :param num_static_obstacles: int number that is the amount of static obstacles in the world
         :param num_moving_obstacles: int number that is the amount of moving obstacles in the world
@@ -40,7 +39,7 @@ class RandomObstacleWorld(World):
         """
         # TODO: add random rotations for the plates
 
-        super().__init__(workspace_boundaries, sim_step)
+        super().__init__(workspace_boundaries, sim_step, env_id)
 
         self.num_static_obstacles = num_static_obstacles
         self.num_moving_obstacles = num_moving_obstacles
@@ -50,7 +49,7 @@ class RandomObstacleWorld(World):
 
         self.vel_min, self.vel_max = moving_obstacles_vels
 
-        self.allowed_directions = moving_obstacles_directions
+        self.allowed_directions = [np.array(direction) for direction in moving_obstacles_directions]
 
         self.trajectory_length_min, self.trajectory_length_max = moving_obstacles_trajectory_length
 

@@ -3,7 +3,7 @@ from typing import Union
 import numpy as np
 import pybullet as pyb
 from world.world import World
-from time import time
+from time import process_time
 
 class Robot(ABC):
     """
@@ -13,6 +13,7 @@ class Robot(ABC):
     """
 
     def __init__(self, name: str,
+                       id_num: int,
                        world: World,
                        sim_step: float,
                        use_physics_sim: bool,
@@ -29,7 +30,7 @@ class Robot(ABC):
 
         # set id field, this will be given by the world containing this robot
         # it's used by other objects such as goals to access the correct robot's data when it's in some list somewhere
-        self.id = None
+        self.id = id_num
 
         # set world
         self.world = world
@@ -53,12 +54,14 @@ class Robot(ABC):
         self.end_effector_link_id = None
         self.base_link_id = None
 
-        # PyBullet related variables
+        # PyBullet and URDF related variables
         self.object_id = None  # PyBullet object id
         self.joints_ids = []  # array of joint ids, this gets filled at runtime
         self.joints_limits_lower = []  # this and the two below you have to fill for yourself in the subclass in __init__
         self.joints_limits_upper = []  # the values are typically found in the urdf
         self.joints_range = None
+        self.joints_max_velocities = None  # again, fill in from URDF in your subclass
+        self.joints_max_forces = None  # same as the one above
 
         # control mode
         #   0: inverse kinematics
@@ -67,7 +70,7 @@ class Robot(ABC):
         self.control_mode = control_mode
 
         # goal associated with the robot
-        self.goals = None
+        self.goal = None
 
         # sensors associated with the robot
         self.sensors = []
@@ -78,10 +81,6 @@ class Robot(ABC):
         # maximum deltas on movements, will be used in Inverse Kinematics control
         self.xyz_delta = xyz_delta
         self.rpy_delta = rpy_delta
-
-        # velocity and force attributes
-        self.joints_vel_delta = None  # must be written to in the build method after loading the URDF with a PyBullet call, see the ur5 implementation for an example
-        self.joints_forces = None  # same as the one above
 
     @abstractmethod
     def get_action_space_dims(self):
@@ -128,7 +127,7 @@ class Robot(ABC):
         This vector will always have the size given by get_action_space_dims and will contain values from -1 to 1.
         The method will return its execution time on the cpu.
         """
-        cpu_epoch = time()
+        cpu_epoch = process_time()
         if self.control_mode == 0:  
             # control via inverse kinematics:
             # actions are small changes in xyz and rpy of the robot's end effector
@@ -155,7 +154,7 @@ class Robot(ABC):
                 # compute the maximum step we do in that direction
                 joint_delta = new_joints - self.joints_sensor.joints_angles
                 joint_delta = joint_delta / np.linalg.norm(joint_delta)
-                joint_delta = joint_delta * self.joints_vel_delta * self.sim_step
+                joint_delta = joint_delta * self.joints_max_velocities * self.sim_step
 
                 # compute the joint angles we can actually go to
                 new_joints = joint_delta + self.joints_sensor.joints_angles
@@ -170,7 +169,7 @@ class Robot(ABC):
             # if we don't, we run simple algebra to get the new joint angles for this step and then apply them
 
             # transform action (-1 to 1) to joint velocities
-            new_joint_vels = action * self.joints_vel_delta
+            new_joint_vels = action * self.joints_max_velocities
             if not self.use_physics_sim:
                 # compute the delta for this sim step
                 joint_delta = new_joint_vels * self.sim_step
@@ -184,7 +183,7 @@ class Robot(ABC):
                 self.moveto_joints_vels(new_joint_vels)
         
         # returns execution time, gets used in gym env to log the times here
-        return time() - cpu_epoch
+        return process_time() - cpu_epoch
 
     def moveto_joints_vels(self, desired_joints_velocities: np.ndarray):
         """
@@ -192,7 +191,7 @@ class Robot(ABC):
 
         :param desired_joints_velocities: Vector containing the new joint velocities.
         """
-        pyb.setJointMotorControlArray(self.object_id, self.joints_ids.tolist(), controlMode=pyb.VELOCITY_CONTROL, targetVelocities=desired_joints_velocities.tolist(), forces=self.joints_forces.tolist())
+        pyb.setJointMotorControlArray(self.object_id, self.joints_ids.tolist(), controlMode=pyb.VELOCITY_CONTROL, targetVelocities=desired_joints_velocities.tolist(), forces=self.joints_max_forces.tolist())
 
     def moveto_joints(self, desired_joints_angles: np.ndarray, use_physics_sim: bool):
         """
@@ -210,7 +209,7 @@ class Robot(ABC):
 
         # apply movement
         if use_physics_sim:
-            pyb.setJointMotorControlArray(self.object_id, self.joints_ids.tolist(), controlMode=pyb.POSITION_CONTROL, targetPositions=desired_joints_angles.tolist(), forces=self.joints_forces.tolist())
+            pyb.setJointMotorControlArray(self.object_id, self.joints_ids.tolist(), controlMode=pyb.POSITION_CONTROL, targetPositions=desired_joints_angles.tolist(), forces=self.joints_max_forces.tolist())
         else:
             for i in range(len(self.joints_ids)):
                 pyb.resetJointState(self.object_id, self.joints_ids[i], desired_joints_angles[i])

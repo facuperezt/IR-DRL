@@ -1,134 +1,119 @@
+# parse command line args
+from argparse import ArgumentParser
+from util.configparser import parse_config
+
+# parse the three arguments
+parser = ArgumentParser(prog = "Modular DRL Robot Gym Env",
+                        description = "Builds and runs a modular gym env for simulated robots using a config file.")
+parser.add_argument("configfile", help="Path to the config yaml you want to use.")
+mode = parser.add_mutually_exclusive_group(required=True)
+mode.add_argument("--train", action="store_true", help="Runs the env in train mode.")
+mode.add_argument("--eval", action="store_true", help="Runs the env in eval mode.")
+mode.add_argument("--debug", action="store_true", help="Runs the env in eval mode but stops on every step for user input and prints the observations.")
+
+args = parser.parse_args()
+
+# fetch the config and parse it into python objects
+run_config, env_config = parse_config(args.configfile, args.train)
+
+# we import the rest here because this takes quite some time and we want the arg parsing to be fast and responsive
 from gym_env.environment import ModularDRLEnv
 from stable_baselines3 import PPO, TD3, SAC
+from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
 from callbacks.callbacks import MoreLoggingCustomCallback
 import torch
-from explanability import ExplainPPO, VisualizeExplanations
+from os.path import isdir
+import numpy as np
+import zennit as z
+from zennit.composites import EpsilonGammaBox
+from zennit.canonizers import SequentialMergeBatchNorm
+from zennit.attribution import Gradient
+from typing import Callable          
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from stable_baselines3.common.preprocessing import preprocess_obs, is_image_space
+from zennit.rules import Epsilon, Gamma
 from time import sleep
-from custom_policies.dropout_policy import DropoutMultiInputActorCriticPolicy, CustomizableFeaturesExtractor
-
-# here the argparser will read in the config file in the future
-# and put the settings into the script_parameters dict
-# for now all the settings are done by hand here
-
-script_parameters = {
-    "train": False,
-    "logging": 1,  # 0: no logging at all, 1: console output on episode end (default as before), 2: same as one 1 + entire log for episode put into csv file at episode end; if max_episodes is not -1 then the csv will contain the data for all episodes
-    "timesteps": 25e6,
-    "max_steps_per_episode": 128,
-    "max_episodes": 30,  # num episodes for eval
-    "save_freq": 3e4,
-    "save_folder": "./models/weights",
-    "save_name": "PPO_Floating_rgbd_smoothed",  # name for the model file, this will get automated later on
-    "num_envs": 48,
-    "use_physics_sim": True,  # use actual physics sim or ignore forces and teleport robot to desired poses
-    "control_mode": 1,  # robot controlled by inverse kinematics (0), joint angles (1) or joint velocities (2)
-    "sim_step": 1 / 240,  # seconds that pass per env step
-    "normalize_observations": False,
-    "normalize_rewards": False,
-    "gamma": 0.9889,
-    "dist_threshold_overwrite": None,  # use this when continuing training to set the distance threhsold to the value that your agent had already reached
-    "stat_buffer_size": 100,  # number of past episodes for averaging success metrics
-    "tensorboard_folder": "./models/tensorboard_logs/",
-    "custom_policy" : DropoutMultiInputActorCriticPolicy, # "MultiInputPolicy",
-    "custom_policy_args": dict(
-        dropout_rate = 0.33,
-        features_extractor_class=CustomizableFeaturesExtractor,
-        features_extractor_kwargs=dict(cnn_out_channels= [8,16,32], features_dim=32,),
-        ),  # custom NN sizes, e.g. dict(activation_fn=torch.nn.ReLU, net_arch=[256, dict(vf=[256, 256], pi=[128, 128])])
-    "ppo_steps": 256,  # steps per env until PPO updates
-    "batch_size": 2048,  # batch size for the ppo updates
-    "load_model": True,  # set to True when loading an existing model 
-    # "model_path": './models_bennoEnv/weights/PPO_floating_fe_0_28800000_steps',  # path for the model when loading one, also used for the eval model when train is set to False
-    "model_path": './models/weights/smoothed_last',  # path for the model when loading one, also used for the eval model when train is set to False
-}
-
-# do not change the env_configs below
-env_config_train = {
-    "train": True,
-    "logging": 1,
-    "max_steps_per_episode": script_parameters["max_steps_per_episode"],
-    "max_episodes": -1,
-    "sim_step": script_parameters["sim_step"],
-    "stat_buffer_size": script_parameters["stat_buffer_size"],
-    "use_physics_sim": script_parameters["use_physics_sim"],
-    "control_mode": script_parameters["control_mode"],
-    "normalize_observations": script_parameters["normalize_observations"],
-    "normalize_rewards": script_parameters["normalize_rewards"],
-    "dist_threshold_overwrite": script_parameters["dist_threshold_overwrite"],
-    "display": False,
-    "display_extra": True
-}
-
-env_config_eval = {
-    "train": False,
-    "logging": script_parameters["logging"],
-    "max_steps_per_episode": script_parameters["max_steps_per_episode"],
-    "max_episodes": script_parameters["max_episodes"],
-    "sim_step": script_parameters["sim_step"],
-    "stat_buffer_size": script_parameters["stat_buffer_size"],
-    "use_physics_sim": script_parameters["use_physics_sim"],
-    "control_mode": script_parameters["control_mode"],
-    "normalize_observations": script_parameters["normalize_observations"],
-    "normalize_rewards": script_parameters["normalize_rewards"],
-    "dist_threshold_overwrite": script_parameters["dist_threshold_overwrite"],
-    "display": True,
-    "display_extra": True
-}
 
 
 
+
+
+#from explanability import ExplainPPO, VisualizeExplanations
 
 if __name__ == "__main__":
-    if script_parameters["train"]:
+    if run_config["train"]:
         
-        def return_train_env_outer():
+        def return_train_env_outer(i):
             def return_train_env_inner():
-                env = ModularDRLEnv(env_config_train)
+                env_config["env_id"] = i
+                env = ModularDRLEnv(env_config)
                 return env
             return return_train_env_inner
         
         # create parallel envs
-        envs = SubprocVecEnv([return_train_env_outer() for i in range(script_parameters["num_envs"])])
+        envs = SubprocVecEnv([return_train_env_outer(i) for i in range(run_config["num_envs"])])
 
         # callbacks
-        checkpoint_callback = CheckpointCallback(save_freq=script_parameters["save_freq"], save_path=script_parameters["save_folder"], name_prefix=script_parameters["save_name"])
+        checkpoint_callback = CheckpointCallback(save_freq=run_config["save_freq"], save_path=run_config["save_folder"] + "/" + run_config["save_name"], name_prefix="model")
         more_logging_callback = MoreLoggingCustomCallback()
 
         callback = CallbackList([checkpoint_callback, more_logging_callback])
 
         # create or load model
-        if not script_parameters["load_model"]:
-            model = PPO(script_parameters["custom_policy"], envs, policy_kwargs=script_parameters["custom_policy_args"], verbose=1, gamma=script_parameters["gamma"], tensorboard_log=script_parameters["tensorboard_folder"], n_steps=script_parameters["ppo_steps"], batch_size=script_parameters["batch_size"])
+        if not run_config["load_model"]:
+            if run_config["recurrent"]:
+                model = RecurrentPPO("MultiInputLstmPolicy", envs, policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], n_steps=run_config["ppo_steps"], batch_size=run_config["batch_size"])
+            else:
+                model = PPO("MultiInputPolicy", envs, policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], n_steps=run_config["ppo_steps"], batch_size=run_config["batch_size"])
+            print(model.policy)
         else:
-            model = PPO.load(script_parameters["model_path"], env=envs, tensorboard_log=script_parameters["tensorboard_folder"])
+            if run_config["recurrent"]:
+                model = RecurrentPPO.load(run_config["model_path"], env=envs, tensorboard_log=run_config["tensorboard_folder"])
+            else:
+                model = PPO.load(run_config["model_path"], env=envs, tensorboard_log=run_config["tensorboard_folder"])
             # needs to be set on my pc when loading a model, dont know why, might not be needed on yours
             model.policy.optimizer.param_groups[0]["capturable"] = True
 
-        model.learn(total_timesteps=script_parameters["timesteps"], callback=callback, tb_log_name=script_parameters["save_name"], reset_num_timesteps=False)
+        model.learn(total_timesteps=run_config["timesteps"], callback=callback, tb_log_name=run_config["save_name"], reset_num_timesteps=False)
 
     else:
-        env = ModularDRLEnv(env_config_eval)
-        if not script_parameters["load_model"]:
-            model = PPO(script_parameters["custom_policy"], env, policy_kwargs=script_parameters["custom_policy_args"], verbose=1, gamma=script_parameters["gamma"], tensorboard_log=script_parameters["tensorboard_folder"], n_steps=script_parameters["ppo_steps"])
+        env_config["env_id"] = 0
+        env = ModularDRLEnv(env_config)
+        if not run_config["load_model"]:
+            # no extra case for recurrent model here, this would act exatcly the same way here as a new PPO does
+            model = PPO("MultiInputPolicy", env, verbose=1)
         else:
-            model = PPO.load(script_parameters["model_path"], env=env)
+            if run_config["recurrent"]:
+                model = RecurrentPPO.load(run_config["model_path"], env=env)
+            else:
+                model = PPO.load(run_config["model_path"], env=env)
 
-        # explainer = ExplainPPO(env, model, extractor_bias= 'camera')
-        # exp_visualizer = VisualizeExplanations(explainer, type_of_data= 'rgbd')
-        model.policy.eval()
+        #explainer = ExplainPPO(env, model, extractor_bias= 'camera')
+        #exp_visualizer = VisualizeExplanations(explainer, type_of_data= 'rgbd')
         while True:
             obs = env.reset()
-            # exp_visualizer.close_open_figs()
-            # fig, axs = exp_visualizer.start_imshow_from_obs(obs, value_or_action='action', grad_outputs=torch.eye(6)[[4]])
-            # fig, axs = exp_visualizer.start_contibution_chart(obs)
+            #exp_visualizer.close_open_figs()
+            #fig, axs = exp_visualizer.start_imshow_from_obs(obs, value_or_action='action')
             done = False
+            # episode start signals for recurrent model
+            episode_start = True if run_config["recurrent"] else None
+            state = None
             while not done:
-                # obs['camera_rgbd_default_floating'] = torch.zeros_like(torch.tensor(obs['camera_rgbd_default_floating'])).numpy()
-                act = model.predict(obs)[0]
+                sleep(run_config["display_delay"])
+                act, state = model.predict(obs, state=(state if run_config["recurrent"] else None), episode_start=episode_start)
                 obs, reward, done, info = env.step(act)
-                # exp_visualizer.update_imshow_from_obs(obs, fig, axs, grad_outputs=torch.eye(6)[[5]])
-                # exp_visualizer.update_contibution_chart(obs, fig, axs)
+                episode_starts = done
+                if args.debug:
+                    print("--------------")
+                    print("Env observation:")
+                    print(obs)
+                    print("Agent action:")
+                    print(act)
+                    inp = input("Press any button to continue with next step or press r to reset the episode:\n")
+                    if inp == "r":
+                        done = True
+                #exp_visualizer.update_imshow_from_obs(obs, fig, axs)
 
 

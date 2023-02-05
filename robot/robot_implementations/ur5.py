@@ -9,11 +9,14 @@ __all__ = [
 
 class UR5(Robot):
 
-    def __init__(self, name: str, world, sim_step: float, use_physics_sim: bool, base_position: Union[list, np.ndarray], base_orientation: Union[list, np.ndarray], resting_angles: Union[list, np.ndarray], control_mode: int, xyz_delta:float, rpy_delta:float):
-        super().__init__(name, world, sim_step, use_physics_sim, base_position, base_orientation, resting_angles, control_mode, xyz_delta, rpy_delta)
+    def __init__(self, name: str, id_num: int, world, sim_step: float, use_physics_sim: bool, base_position: Union[list, np.ndarray], base_orientation: Union[list, np.ndarray], resting_angles: Union[list, np.ndarray], control_mode: int, xyz_delta: float, rpy_delta: float):
+        super().__init__(name, id_num, world, sim_step, use_physics_sim, base_position, base_orientation, resting_angles, control_mode, xyz_delta, rpy_delta)
         self.joints_limits_lower = np.array([-np.pi, -np.pi, -np.pi, -np.pi, -np.pi, -np.pi])
         self.joints_limits_upper = np.array([np.pi, np.pi, np.pi, np.pi, np.pi, np.pi])
         self.joints_range = self.joints_limits_upper - self.joints_limits_lower
+
+        self.joints_max_forces = np.array([300., 300., 300., 300., 300., 300.])
+        self.joints_max_velocities = np.array([10., 10., 10., 10., 10., 10.])
 
         self.end_effector_link_id = 7
         self.base_link_id = 1
@@ -23,12 +26,9 @@ class UR5(Robot):
 
     def build(self):
 
-        self.object_id = pyb.loadURDF("ur5/urdf/ur5.urdf", basePosition=self.base_position.tolist(), baseOrientation=self.base_orientation.tolist(), useFixedBase=True)
+        self.object_id = pyb.loadURDF("robots/predefined/ur5/urdf/ur5.urdf", basePosition=self.base_position.tolist(), baseOrientation=self.base_orientation.tolist(), useFixedBase=True)
         joints_info = [pyb.getJointInfo(self.id, i) for i in range(pyb.getNumJoints(self.id))]
         self.joints_ids = np.array([j[0] for j in joints_info if j[2] == pyb.JOINT_REVOLUTE])
-
-        self.joints_forces = np.array([j[10] for j in joints_info if j[2] == pyb.JOINT_REVOLUTE])
-        self.joints_vel_delta = np.array([j[11] for j in joints_info if j[2] == pyb.JOINT_REVOLUTE])
 
         self.moveto_joints(self.resting_pose_angles, False)     
 
@@ -56,5 +56,6 @@ class UR5(Robot):
             maxNumIterations=100,
             residualThreshold=.01)
         joints = np.float32(joints)
-        joints = (joints + self.joints_limits_upper) % (self.joints_range) - self.joints_limits_upper  # projects out of bounds angles back to angles within the allowed joint range
+        #joints = (joints + self.joints_limits_upper) % (self.joints_range) - self.joints_limits_upper  # projects out of bounds angles back to angles within the allowed joint range
+        joints[2:] = (joints[2:] + np.pi) % (2 * np.pi) - np.pi
         return joints

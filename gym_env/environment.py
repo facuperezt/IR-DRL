@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import pybullet as pyb
-from time import time
+from time import process_time
 import pandas as pd
 
 # import abstracts
@@ -16,75 +16,61 @@ from world import WorldRegistry
 #   robots
 from robot import RobotRegistry
 #   sensors
-from sensor.positional import PositionalRegistry
-from sensor.lidar import LidarRegistry
-from sensor.camera import CameraRegistry
+from sensor import SensorRegistry
 #   goals
 from goal import GoalRegistry
 
 class ModularDRLEnv(gym.Env):
 
     def __init__(self, env_config):
-
-        # here the parser for the env_config (a python dict for the external YAML file) will appear at some point
-        # for now, the attributes needed to get this prototype to run are set manually here
         
-        # general env attributes
-        self.normalize_observations = env_config["normalize_observations"]
-        self.normalize_rewards = env_config["normalize_rewards"]
-        self.display = env_config["display"]
-        self.show_auxillary_geometry_world = env_config["display_extra"]
-        self.show_auxillary_geometry_goal = env_config["display_extra"]
+        #   general env attributes
+        # run mode
         self.train = env_config["train"]
+        # flag for normalizing observations
+        self.normalize_observations = env_config["normalize_observations"]
+        # flag for normalizing rewards
+        self.normalize_rewards = env_config["normalize_rewards"]
+        # flag for rendering
+        self.display = env_config["display"]
+        # flag for rendering auxillary geometry spawned by the scenario
+        self.show_auxillary_geometry_world = env_config["display_extra"]
+        # flag for rendering auxillary geometry spawned by the goals
+        self.show_auxillary_geometry_goal = env_config["display_extra"]
+        # maximum steps in an episode before timeout
         self.max_steps_per_episode = env_config["max_steps_per_episode"]
-        self.max_episodes = env_config["max_episodes"]  # number of episodes after which the code will exit on its own, if set to -1 will continue indefinitely until stopped from the outside
-        self.logging = env_config["logging"]  # 0: no logging, 1: logging for console every episode, 2: logging for console every episode and to csv after maximum number of episodes has been reached or after every episode if max_episodes is -1
-        self.use_physics_sim = env_config["use_physics_sim"]  # whether to use static PyBullet teleporting or actually let sim time pass in its simulation
-        self.stat_buffer_size = env_config["stat_buffer_size"]  # length of the stat arrays in terms of episodes over which the average will be drawn for logging
-        self.sim_step = env_config["sim_step"]  # in seconds -> inverse is frame rate in Hz
+        # number of episodes after which the code will exit on its own, if set to -1 will continue indefinitely until stopped from the outside
+        self.max_episodes = env_config["max_episodes"]  
+        # 0: no logging, 1: logging for console every episode, 2: logging for console every episode and to csv after maximum number of episodes has been reached or after every episode if max_episodes is -1
+        self.logging = env_config["logging"] 
+        # whether to use static PyBullet teleporting or actually let sim time pass in its simulation
+        self.use_physics_sim = env_config["use_physics_sim"]  
+        # when using the physics sim, this is the amount of steps that we let pass per env step
+        # the lower this value, the more often observations will be collected and a new action be calculated by the agent
+        self.physics_steps_per_env_step = env_config["physics_steps_per_env_step"]
+        # length of the stat arrays in terms of episodes over which the average will be drawn for logging
+        self.stat_buffer_size = env_config["stat_buffer_size"]  
+        # in seconds -> inverse is frame rate in Hz
+        self.sim_step = env_config["sim_step"]  
+        # the env id, this is used to recognize this env when running multiple in parallel, is used for some file related stuff
+        self.env_id = env_config["env_id"]
 
         # tracking variables
         self.episode = 0
         self.steps_current_episode = 0
         self.sim_time = 0
         self.cpu_time = 0
-        self.cpu_epoch = time()
+        self.cpu_epoch = process_time()
         self.log = []
-        self.success_stat = [False]
-        self.out_of_bounds_stat = [False]
-        self.timeout_stat = [False]
-        self.collision_stat = [False]
+        # init and fill the stats with a few entries to make early iterations more robust
+        self.success_stat = [False, False, False, False]
+        self.out_of_bounds_stat = [False, False, False, False]
+        self.timeout_stat = [False, False, False, False]
+        self.collision_stat = [False, False, False, False]
+        self.cumulated_rewards_stat = [0]
         self.goal_metrics = []
         self.reward = 0
         self.reward_cumulative = 0
-
-        # misc
-        dist_threshold_overwrite = env_config["dist_threshold_overwrite"]
-
-        
-        # world attributes for yifan env
-        workspace_boundaries = [-0.4, 0.4, 0.3, 0.7, 0.2, 0.5]
-        robot_base_positions = [np.array([0.0, -0.12, 0.5])]
-        robot_base_orientations = [np.array([0, 0, 0, 1])]
-        num_static_obstacles = 3
-        num_moving_obstacles = 1
-        box_measurements = [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
-        sphere_measurements = [0.005, 0.02]
-        moving_obstacles_vels = [0.1, 1]
-        moving_obstacles_directions = []
-        moving_obstacles_trajectory_length = [0.2, 1]
-        robot_resting_angles = [np.array([0.0, np.pi/2, -np.pi/6, -2*np.pi/3, -4*np.pi/9, np.pi/2])]
-        """
-        # world attributes for table experiment
-        workspace_boundaries = [-2, 2, -2, 2, 0, 5]
-        robot_base_positions = [np.array([0, 0.0, 1.1])]
-        robot_base_orientations = [np.array([0, 0, 0, 1])]
-        robot_resting_angles = [np.array([-np.pi,-np.pi/4,-np.pi/2,-3*np.pi/4,np.pi/2,0])] 
-        """
-        # robot attributes
-        self.xyz_vels = [0.005]
-        self.rpy_vels = [0.005]
-        self.control_mode = [env_config["control_mode"]]
 
         # set up the PyBullet client
         disp = pyb.DIRECT if not self.display else pyb.GUI
@@ -93,123 +79,92 @@ class ModularDRLEnv(gym.Env):
         pyb.setAdditionalSearchPath("./assets/")
         if self.use_physics_sim:
             pyb.setTimeStep(self.sim_step)
+
+        # init world from config
+        world_type = env_config["world"]["type"]
+        world_config = env_config["world"]["config"]
+        world_config["env_id"] = self.env_id
+        world_config["sim_step"] = self.sim_step
         
-        
-        self.world = WorldRegistry.get("RandomObstacle")(workspace_boundaries=workspace_boundaries,
-                                         sim_step=self.sim_step,
-                                         num_static_obstacles=num_static_obstacles,
-                                         num_moving_obstacles=num_moving_obstacles,
-                                         box_measurements=box_measurements,
-                                         sphere_measurements=sphere_measurements,
-                                         moving_obstacles_vels=moving_obstacles_vels,
-                                         moving_obstacles_directions=moving_obstacles_directions,
-                                         moving_obstacles_trajectory_length=moving_obstacles_trajectory_length)
+        self.world = WorldRegistry.get(world_type)(**world_config)
 
-        # self.world = WorldRegistry.get("TableExperiment")(workspace_boundaries=workspace_boundaries,
-        #                                  sim_step=self.sim_step,
-        #                                  num_obstacles=10,
-        #                                  obstacle_velocities=[],
-        #                                  num_humans=0,
-        #                                  #human_positions=[np.array([1.8, 0, 1.4])],
-        #                                  human_positions=[np.array([0, 0, 0])],
-        #                                  #human_rotations=[np.array(pyb.getQuaternionFromEuler([0,0,np.pi/2]))],
-        #                                  human_rotations = [np.array([0, 0, 0, 1])],
-        #                                  human_trajectories=[[np.array([-2,2,1.4]), np.array([2, 2, 1.4])]],
-        #                                  #human_trajectories=[[]],
-        #                                  human_reactive=[True],
-        #                                  ee_starts=[],
-        #                                  obstacle_positions=[],
-        #                                  obstacle_trajectories=[],
-        #                                  obstacle_training_schedule=True)
-
-        # self.world = WorldRegistry.get("GeneratedWorld")(workspace_boundaries=workspace_boundaries,
-        #                                  sim_step=self.sim_step)
-
-        #self.world = TestcasesWorld(test_mode=2)
-
-        # at this point robots would dynamically be created as needed by the config/the world
-        # however, for now we generate one manually
+        # init robots and their associated sensors and goals from config
         self.robots = []
-        ur5_1 = RobotRegistry.get('UR5')(name="ur5_1", 
-                   world=self.world,
-                   sim_step=self.sim_step,
-                   use_physics_sim=self.use_physics_sim,
-                   base_position=robot_base_positions[0],
-                   base_orientation=robot_base_orientations[0],
-                   resting_angles=robot_resting_angles[0],
-                   control_mode=self.control_mode[0],
-                   xyz_delta=self.xyz_vels[0],
-                   rpy_delta=self.rpy_vels[0])
-        self.robots.append(ur5_1)
-        ur5_1.id = 0
-
-        # at this point we would generate all the sensors prescribed by the config for each robot and assign them to the robots
-        # however, for now we simply generate the two necessary ones manually
         self.sensors = []
-        ur5_1_position_sensor = PositionalRegistry.get("PositionRotation")(self.normalize_observations, True, True, self.sim_step, ur5_1, 7)
-        ur5_1_joint_sensor = PositionalRegistry.get("Joints")(self.normalize_observations, True, True, self.sim_step, ur5_1)
-        ur5_1.set_joint_sensor(ur5_1_joint_sensor)
-        ur5_1.set_position_rotation_sensor(ur5_1_position_sensor)
-
-        # ur5_1_lidar_sensor = LidarRegistry.get('LidarSensorUR5_Explainable')(normalize=self.normalize_observations,
-        #                                     add_to_observation_space=True, 
-        #                                     add_to_logging=False,
-        #                                     sim_step=self.sim_step,
-        #                                     robot=ur5_1, 
-        #                                     indicator_buckets=9,
-        #                                     ray_start=0,
-        #                                     ray_end=0.3,
-        #                                     num_rays_side=10,
-        #                                     num_rays_circle_directions=6,
-        #                                     render=False,
-        #                                     indicator=True)
-
-        
-        # ur5_1_camera_sensor = CameraRegistry.get('Floating_FollowEffector')(
-        #                                             ur5_1,
-        #                                             [0, 1, 0.5],
-        #                                             camera_args={
-        #                                                 'fov' : 45,
-        #                                                 'aspect' : 4,
-        #                                                 'type': 'rgbd',
-        #                                                 'height' : 64,
-        #                                                 'width' : 128},
-        #                                             )
-        ur5_1_camera_sensor = CameraRegistry.get('Floating_General')(
-                                                    [0, 1, 0.5],
-                                                    [0, 0.5, 0.35],
-                                                    camera_args={
-                                                        'fov' : 45,
-                                                        'aspect' : 4,
-                                                        'type': 'rgbd',
-                                                        'height' : 64,
-                                                        'width' : 128},
-                                                    )
-
-        self.sensors = [ur5_1_joint_sensor, ur5_1_position_sensor, ur5_1_camera_sensor]
-
-
-        # at this point we would generate all the goals needed and assign them to their respective robots
-        # however, for the moment we simply generate the one we want for testing
         self.goals = []
-        ur5_1_goal = GoalRegistry.get('PositionCollision_ext')(robot=ur5_1,
-                                           normalize_rewards=self.normalize_rewards,
-                                           normalize_observations=self.normalize_observations,
-                                           train=self.train,
-                                           add_to_logging=True,
-                                           max_steps=self.max_steps_per_episode,
-                                           continue_after_success=False, 
-                                           reward_success=20,
-                                           reward_collision=-13.5,
-                                           reward_distance_mult=-0.01,
-                                           dist_threshold_start=0.4,
-                                           dist_threshold_end=0.02,
-                                           dist_threshold_increment_start=0.02,
-                                           dist_threshold_increment_end=0.002,
-                                           dist_threshold_overwrite=dist_threshold_overwrite)
-        self.goals.append(ur5_1_goal)
-        ur5_1.set_goal(ur5_1_goal)
+        id_counter = 0
+        for robo_entry in env_config["robots"]:
+            robo_type = robo_entry["type"]
+            robo_config = robo_entry["config"]
+            # add some necessary attributes
+            robo_config["id_num"] = id_counter
+            robo_config["use_physics_sim"] = self.use_physics_sim
+            robo_config["world"] = self.world
+            robo_config["sim_step"] = self.sim_step
+            id_counter += 1
+            robot = RobotRegistry.get(robo_type)(**robo_config)
+            self.robots.append(robot)
 
+            # create the two mandatory sensors
+            if "report_joint_velocities" in robo_entry:
+                jv = robo_entry["report_joint_velocities"]
+            else:
+                jv = False
+            joint_sens_config = {"normalize": self.normalize_observations, "add_to_observation_space": True, 
+                                 "add_to_logging": True, "sim_step": self.sim_step, "update_steps": 1, "robot": robot, "add_joint_velocities": jv}
+            posrot_sens_config = {"normalize": self.normalize_observations, "add_to_observation_space": True, 
+                                 "add_to_logging": True, "sim_step": self.sim_step, "update_steps": 1, "robot": robot,
+                                 "link_id": robot.end_effector_link_id, "quaternion": True}
+            new_rob_joints_sensor = SensorRegistry.get("Joints")(**joint_sens_config)
+            new_rob_posrot_sensor = SensorRegistry.get("PositionRotation")(**posrot_sens_config)
+            robot.set_joint_sensor(new_rob_joints_sensor)
+            robot.set_position_rotation_sensor(new_rob_posrot_sensor)
+            self.sensors.append(new_rob_posrot_sensor)
+            self.sensors.append(new_rob_joints_sensor)
+
+            # create the sensors indicated by the config
+            if "sensors" in robo_entry:
+                for sensor_entry in robo_entry["sensors"]:
+                    sensor_type = sensor_entry["type"]
+                    sensor_config = sensor_entry["config"]
+                    sensor_config["sim_step"] = self.sim_step
+                    sensor_config["robot"] = robot
+                    sensor_config["normalize"] = self.normalize_observations
+                    # deal with robot bound sensors that refer to other robots
+                    if "target_robot" in sensor_config:
+                        # go through the list of existing robots
+                        for other_robot in self.robots:
+                            # find the one whose name matches the target
+                            if other_robot.name == sensor_config["target_robot"]:
+                                sensor_config["target_robot"] = other_robot
+                                break
+                    new_sensor = SensorRegistry.get(sensor_type)(**sensor_config)
+                    self.sensors.append(new_sensor)
+            
+            if "goal" in robo_entry:
+                # create the goal indicated by the config
+                goal_type = robo_entry["goal"]["type"]
+                goal_config = robo_entry["goal"]["config"]
+                goal_config["robot"] = robot
+                goal_config["train"] = self.train
+                goal_config["normalize_rewards"] = self.normalize_rewards
+                goal_config["normalize_observations"] = self.normalize_observations
+                goal_config["max_steps"] = self.max_steps_per_episode
+                new_goal = GoalRegistry.get(goal_type)(**goal_config)
+                self.goals.append(new_goal)
+                robot.set_goal(new_goal)
+
+        # init sensors that don't belong to a robot
+        if "sensors" in env_config:
+            for sensor_entry in env_config["sensors"]:
+                sensor_type = sensor_entry["type"]
+                sensor_config = sensor_entry["config"]
+                sensor_config["sim_step"] = self.sim_step
+                sensor_config["normalize"] = self.normalize_observations
+                new_sensor = SensorRegistry.get(sensor_type)(**sensor_config)
+                self.sensors.append(new_sensor)
+
+        # register robots with the world
         self.world.register_robots(self.robots)
 
         # construct observation space from sensors and goals
@@ -226,14 +181,14 @@ class ModularDRLEnv(gym.Env):
 
         # construct action space from robots
         # the action space will be a vector with the length of all robot's control dimensions added up
-        # e.g. if one robot needs 4 values for its control and another 10,
+        # e.g. if one robot needs 4 values for its control and another 6,
         # the action space will be a 10-vector with the first 4 elements working for robot 1 and the last 6 for robot 2
         self.action_space_dims = []
         for idx, robot in enumerate(self.robots):
             joints_dims, ik_dims = robot.get_action_space_dims()
-            if self.control_mode[idx]:  # aka if self.control_mode[idx] != 0
+            if robot.control_mode:  # aka if self.control_mode[idx] == 1 or == 2
                 self.action_space_dims.append(joints_dims)
-            else:
+            else:  # == 0
                 self.action_space_dims.append(ik_dims)
         
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(sum(self.action_space_dims),), dtype=np.float32)
@@ -244,13 +199,13 @@ class ModularDRLEnv(gym.Env):
             exit(0)
 
         # disable rendering for the setup to save time
-        pyb.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 0)
+        #pyb.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 0)
 
         # reset the tracking variables
         self.steps_current_episode = 0
         self.sim_time = 0
         self.cpu_time = 0
-        self.cpu_epoch = time()
+        self.cpu_reset_epoch = process_time()
         self.reward = 0
         self.reward_cumulative = 0
         self.episode += 1
@@ -344,6 +299,9 @@ class ModularDRLEnv(gym.Env):
 
     def step(self, action):
         
+        if self.steps_current_episode == 0:
+            self.cpu_epoch = process_time()
+
         # convert to numpy
         action = np.array(action)
         
@@ -356,18 +314,21 @@ class ModularDRLEnv(gym.Env):
         for idx, robot in enumerate(self.robots):
             if not self.active_robots[idx]:
                 action_offset += self.action_space_dims[idx]
+                exec_times_cpu.append(0)
                 continue
             # get the slice of the action vector that belongs to the current robot
             current_robot_action = action[action_offset : self.action_space_dims[idx] + action_offset]
             action_offset += self.action_space_dims[idx]
             exec_time = robot.process_action(current_robot_action)
             if self.use_physics_sim:
-                pyb.stepSimulation()
+                for i in range(self.physics_steps_per_env_step):
+                    pyb.stepSimulation()
+                    self.sim_time += self.sim_step
             exec_times_cpu.append(exec_time)
 
         # update the sensor data
         for sensor in self.sensors:
-            sensor.update()
+            sensor.update(self.steps_current_episode)
 
         # update the collision model
         self.world.perform_collision_check()
@@ -379,25 +340,28 @@ class ModularDRLEnv(gym.Env):
         timeouts = []
         oobs = []
         action_offset = 0
-        for idx, goal in enumerate(self.goals):
-            # again get the slice of the entire action vector that belongs to the robot/goal in question
-            current_robot_action = action[action_offset : self.action_space_dims[idx] + action_offset]
+        for idx, robot in enumerate(self.robots):
+            goal = robot.goal
+            # only go trough calculations if robot has a goal and it is active
+            if goal is not None and self.active_robots[idx]:
+                # again get the slice of the entire action vector that belongs to the robot/goal in question
+                current_robot_action = action[action_offset : self.action_space_dims[idx] + action_offset]
+                # get reward of goal
+                reward_info = goal.reward(self.steps_current_episode, current_robot_action)  # tuple: reward, success, done, timeout, out_of_bounds
+                rewards.append(reward_info[0])
+                successes.append(reward_info[1])
+                # set respective robot to inactive after success, if needed
+                if reward_info[1] and not goal.continue_after_success:
+                    self.active_robots[idx] = False
+                dones.append(reward_info[2] if not reward_info[1] else False)  # if the goal sends a success signal, we discard it's done signal to allow other robots to continue working; in single robot envs the overall done is still send, see below
+                timeouts.append(reward_info[3])
+                oobs.append(reward_info[4])
             action_offset += self.action_space_dims[idx]
-            # get reward of goal
-            reward_info = goal.reward(self.steps_current_episode, current_robot_action)  # tuple: reward, success, done, timeout, out_of_bounds
-            rewards.append(reward_info[0])
-            successes.append(reward_info[1])
-            # set respective robot to inactive after success, if needed
-            if reward_info[1] and not goal.continue_after_success:
-                self.active_robots[idx] = False
-            dones.append(reward_info[2])
-            timeouts.append(reward_info[3])
-            oobs.append(reward_info[4])
 
         # determine overall env termination condition
         collision = self.world.collision
-        done = np.any(dones) or collision  # one done out of all goals/robots suffices for the entire env to be done or anything collided
         is_success = np.all(successes)  # all goals must be succesful for the entire env to be
+        done = np.any(dones) or collision or is_success  # one done out of all goals/robots suffices for the entire env to be done or anything collided or everything is successful
         timeout = np.any(timeouts)
         out_of_bounds = np.any(oobs)
 
@@ -412,8 +376,7 @@ class ModularDRLEnv(gym.Env):
         self.reward_cumulative += self.reward
 
         # update tracking variables and stats
-        self.sim_time += self.sim_step
-        self.cpu_time = time() - self.cpu_epoch
+        self.cpu_time = process_time() - self.cpu_epoch
         self.steps_current_episode += 1
         if done:
             self.success_stat.append(is_success)
@@ -428,6 +391,9 @@ class ModularDRLEnv(gym.Env):
             self.collision_stat.append(collision)
             if len(self.collision_stat) > self.stat_buffer_size:
                 self.collision_stat.pop(0)
+            self.cumulated_rewards_stat.append(self.reward_cumulative)
+            if len(self.cumulated_rewards_stat) > self.stat_buffer_size:
+                self.cumulated_rewards_stat.pop(0)
 
         if self.logging == 0:
             # no logging
@@ -436,15 +402,21 @@ class ModularDRLEnv(gym.Env):
             # logging to console or textfile
 
             # start log dict with env wide information
-            info = {"episodes": self.episode,
+            info = {"env_id": self.env_id,
+                    "episodes": self.episode,
                     "is_success": is_success, 
+                    "collision": collision,
+                    "timeout": timeout,
+                    "out_of_bounds": out_of_bounds,
                     "step": self.steps_current_episode,
                     "success_rate": np.average(self.success_stat),
                     "out_of_bounds_rate": np.average(self.out_of_bounds_stat),
                     "timeout_rate": np.average(self.timeout_stat),
                     "collision_rate": np.average(self.collision_stat),
+                    "cumulated_rewards": np.average(self.cumulated_rewards_stat),
                     "sim_time": self.sim_time,
-                    "cpu_time": self.cpu_time}
+                    "cpu_time_steps": self.cpu_time,
+                    "cpu_time_full": self.cpu_time + self.cpu_epoch - self.cpu_reset_epoch}
             # get robot execution times
             for idx, robot in enumerate(self.robots):
                 if not self.active_robots[idx]:
@@ -501,6 +473,53 @@ class ModularDRLEnv(gym.Env):
                 to_print = str(round(info[key], 3))
             info_string += key + ": " + to_print + ", "
         return info_string[:-1]  # cut off last space
+
+    def manual_control(self):
+        """
+        Debug method for controlling the robot.
+        """
+        # code to manually control the robot in real time
+        roll = pyb.addUserDebugParameter("r", -4.0, 4.0, 0)
+        pitch = pyb.addUserDebugParameter("p", -4.0, 4.0, 0)
+        yaw = pyb.addUserDebugParameter("y", -4.0, 4.0, 0)
+        fwdxId = pyb.addUserDebugParameter("fwd_x", -4, 8, 0)
+        fwdyId = pyb.addUserDebugParameter("fwd_y", -4, 8, 0)
+        fwdzId = pyb.addUserDebugParameter("fwd_z", -1, 3, 0)
+        x_base = 0
+        y_base = 0
+
+        pyb.addUserDebugLine([0,0,0],[0,0,1],[0,0,1],parentObjectUniqueId=self.robots[0].object_id, parentLinkIndex= self.robots[0].end_effector_link_id)
+        pyb.addUserDebugLine([0,0,0],[0,1,0],[0,1,0],parentObjectUniqueId=self.robots[0].object_id, parentLinkIndex= self.robots[0].end_effector_link_id)
+        pyb.addUserDebugLine([0,0,0],[1,0,0],[1,0,0],parentObjectUniqueId=self.robots[0].object_id, parentLinkIndex= self.robots[0].end_effector_link_id)
+
+        lineID = 0
+
+        while True:
+            if lineID:
+                pyb.removeUserDebugItem(lineID)
+
+            # read inputs from GUI
+            qrr = pyb.readUserDebugParameter(roll)
+            qpr = pyb.readUserDebugParameter(pitch)
+            qyr = pyb.readUserDebugParameter(yaw)
+            x = pyb.readUserDebugParameter(fwdxId)
+            y = pyb.readUserDebugParameter(fwdyId)
+            z = pyb.readUserDebugParameter(fwdzId)
+            oldxbase = x_base
+            oldybase = y_base
+
+            # build quaternion from user input
+            command_quat = pyb.getQuaternionFromEuler([qrr,qpr,qyr])
+
+            self.robots[0].moveto_xyzquat(np.array([x,y,z]),np.array(command_quat), self.use_physics_sim)
+            if self.use_physics_sim:
+                for i in range(self.physics_steps_per_env_step):
+                    pyb.stepSimulation()
+
+            self.robots[0].position_rotation_sensor.update(0)
+            pos = self.robots[0].position_rotation_sensor.position
+
+            lineID = pyb.addUserDebugLine([x,y,z], pos.tolist(), [0,0,0])
 
     ####################
     # callback methods #
