@@ -130,7 +130,7 @@ class VisualizeExplanations:
 
 
 
-        fig, (ax_action, ax_value) = plt.subplots(1,2,)
+        fig, (ax_action, ax_value) = plt.subplots(2,1,)
         self.open_figs.append((fig, (ax_action, ax_value)))
         self.rects = {'action': [], 'value': []}
 
@@ -145,18 +145,19 @@ class VisualizeExplanations:
         ax_action.set_xlabel('Joint number')
         ax_action.set_ylabel('Contribution per sensor')
         ax_action.set_ylim([-10, 10])
-        ax_action.legend()
         
-        for i in range(len(val_split)):
-            self.rects['value'].append(ax_value.bar([idx.max()/2], val_split[i]/sum(val_split), alpha= 0.7))
 
-        ax_value.set_xticks([(idx.max()/2) - 1, (idx.max()/2) + 1])
-        ax_value.set_xticklabels(['Negative Value', 'Positive Value'])
+        self.rects['value'] = ax_value.plot(np.arange(20) - 19,np.zeros((20,4)))
+
+        ax_value.set_xticks(np.arange(20) - 19)
+        ax_value.set_xticklabels([str(i) for i in np.arange(19) - 18] + ['current'], rotation= 65)
         ax_value.set_ylabel('Percentage contribution')
-        ax_value.set_xlim(ax_action.get_xlim())
+        ax_value.set_xlim([-19, 1])
+        ax_value.set_ylim([-1,1])
+        ax_value.legend(contribution_split.keys(), loc='lower left')
 
-        plt.draw()
-        plt.pause(0.1)
+        fig.canvas.flush_events()
+        plt.pause(0.01)
 
         return self.open_figs[-1]
 
@@ -180,6 +181,7 @@ class VisualizeExplanations:
 
   
     def update_contibution_chart(self, obs, fig = None, axs = None):
+        ax_action, ax_value = axs
         val_features = self.explainer.explain_value_net(obs).squeeze()
         val_split = [val_features[inds].sum() for inds in self.explainer.feature_indices.values()]
         action_split = {}
@@ -200,11 +202,17 @@ class VisualizeExplanations:
                 rect.set_height(contrib)
             bottoms = self._process_bottoms(contribs, bottoms)
         
-        for rects in self.rects['value']:
-            for rect, val in zip(rects, val_split):
-                rect.set_height(val)
+        for line, new_val in zip(self.rects['value'], val_split):
+            x, y = line.get_data()
+            y[0] = (new_val/sum(val_split)).numpy()
+            y = np.roll(y, -1)
+            line.set_data(x,y)
 
-        plt.draw()
+        ax_action.relim()
+        ax_value.relim()
+        ax_value.autoscale_view()
+
+        fig.canvas.flush_events()
         plt.pause(0.1)
 
 

@@ -259,6 +259,8 @@ class PositionCollisionGoal_Extended(PositionCollisionGoal):
 
         if step < 20 and out_of_bounds:
             reward += self.reward_collision /2
+
+        reward -= self.distance/100 * step
         
         self.reward_value = reward
         if self.normalize_rewards_extended:

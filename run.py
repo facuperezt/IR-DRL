@@ -13,7 +13,7 @@ from custom_policies.dropout_policy import DropoutMultiInputActorCriticPolicy, C
 # for now all the settings are done by hand here
 
 script_parameters = {
-    "train": True,
+    "train": False,
     "logging": 1,  # 0: no logging at all, 1: console output on episode end (default as before), 2: same as one 1 + entire log for episode put into csv file at episode end; if max_episodes is not -1 then the csv will contain the data for all episodes
     "timesteps": 25e6,
     "max_steps_per_episode": 128,
@@ -40,7 +40,8 @@ script_parameters = {
     "ppo_steps": 256,  # steps per env until PPO updates
     "batch_size": 2048,  # batch size for the ppo updates
     "load_model": True,  # set to True when loading an existing model 
-    "model_path": './models/weights/PPO_Floating_rgbd_smoothed_7200000_steps',  # path for the model when loading one, also used for the eval model when train is set to False
+    # "model_path": './models_bennoEnv/weights/PPO_floating_fe_0_28800000_steps',  # path for the model when loading one, also used for the eval model when train is set to False
+    "model_path": './models/weights/smoothed_last',  # path for the model when loading one, also used for the eval model when train is set to False
 }
 
 # do not change the env_configs below
@@ -120,7 +121,7 @@ if __name__ == "__main__":
         while True:
             obs = env.reset()
             # exp_visualizer.close_open_figs()
-            # fig, axs = exp_visualizer.start_imshow_from_obs(obs, value_or_action='action', grad_outputs=torch.eye(6)[[5]])
+            # fig, axs = exp_visualizer.start_imshow_from_obs(obs, value_or_action='action', grad_outputs=torch.eye(6)[[4]])
             # fig, axs = exp_visualizer.start_contibution_chart(obs)
             done = False
             while not done:
