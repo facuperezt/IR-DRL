@@ -48,10 +48,10 @@ env:
     - type: "UR5" 
       config:
         name: "ur5_1"
-        base_position: [0, 0, 1.1]
+        base_position: [0, 0, 0.1]
         base_orientation: [0, 0, 0]
-        resting_angles: [-180, -45, -90, -135, 90, 0]
-        control_mode: 0
+        resting_angles: [-90, -45, -45, -135, -90, 0]
+        control_mode: 1
         xyz_delta: 0.005
         rpy_delta: 0.005
       sensors:
@@ -74,7 +74,7 @@ env:
         - type: "FrameStackingCamera"
           config:
             name: "framestacking"
-            position: [0,0,3]
+            position: [0,1.2,0.5]
             camera_args: 
               type: 'rgbd'
               width: 64
@@ -98,7 +98,7 @@ env:
   world:
     type: "RandomObstacle"
     config:
-      workspace_boundaries: [-2, 2, -2, 2, 0, 5]
+      workspace_boundaries: [-0.4, 0.4, 0.3, 0.7, 0.2, 0.5]
       # type specific settings
       # int, number of static obstacles
       num_static_obstacles: 3
@@ -106,7 +106,7 @@ env:
       num_moving_obstacles: 1
       # floats, measurements of the three dimensions for random box obstacles
       # format: widthmin, widthmax, lengthmin, lengthmax, heightmin, heightmax
-      box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
+      # box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
       # floats, size of the random radii of sphere obstacles, format: rmin, rmax
       sphere_measurements: [0.005, 0.02]
       # floats, bounds for the random velocities of the moving obstacles, format: vmin, vmax

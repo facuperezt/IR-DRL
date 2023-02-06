@@ -28,8 +28,11 @@ class StaticFrameStacking(CameraBase):
         self.frames_buffer = torch.zeros((n_frames, self.camera_args["width"], self.camera_args["height"], nr_channels[self.camera_args["type"]]))
 
     def _adapt_to_environment(self):
-        self.target = pyb.getLinkState(self.robot.object_id, self.robot.end_effector_link_id)[4]
-        super()._adapt_to_environment()
+        # self.target = pyb.getLinkState(self.robot.object_id, self.robot.end_effector_link_id)[4]
+        # super()._adapt_to_environment()
+        self.camera = self._set_camera()
+
+        pass
 
     def _set_camera(self):
         if self.debug.get('position', False) or self.debug.get('orientation', False) or self.debug.get('target', False) or self.debug.get('lines', False):
@@ -94,6 +97,7 @@ class StaticFrameStacking(CameraBase):
 
     def reset(self):
         super().reset()
+        # self.camera_args['up_vector'], _, _ = directionalVectorsFromQuaternion(getOrientationFromDirectionalVector(add_list(self.target, self.pos, -1), [0,0,-1]))
         self.frames_buffer = np.repeat(self.current_image[np.newaxis], self.n_frames, 0)
 
     def update(self, step):
