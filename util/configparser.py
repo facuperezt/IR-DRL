@@ -2,6 +2,7 @@ import yaml
 import numpy as np
 import torch as th
 import pybullet as pyb
+from custom_policies.dropout_policy import CustomizableFeaturesExtractor
 
 def walk_dict_and_convert_to_our_format(node):
     # walk through the nested dictionaries and lists
@@ -62,6 +63,12 @@ def parse_config(filepath, train):
     # convert the dict description of custom policy to actual format used by sb3
     if not config_raw["run"]["train"]["custom_policy"]["use"]:
         config_raw["run"]["custom_policy"] = None
+    elif config_raw["run"]["train"]["custom_policy"]["use"] == "framestack":
+        config_raw["run"]["custom_policy"] = {
+            'features_extractor_class': CustomizableFeaturesExtractor,
+            'features_extractor_kwargs': {
+                "cnn_out_channels" : config_raw["run"]["custom_policy"]["cnn_dims"]},
+                }
     else:
         # get activation function
         if config_raw["run"]["train"]["custom_policy"]["activation_function"] == "ReLU":

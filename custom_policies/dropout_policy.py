@@ -1,3 +1,4 @@
+#%%
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
 from gym import spaces
@@ -22,10 +23,19 @@ class CustomizableCNN(BaseFeaturesExtractor):
     """
 
     def __init__(self, observation_space: gym.spaces.Box, cnn_out_channels = None, features_dim: int = 128):
-        super(CustomizableCNN, self).__init__(observation_space, features_dim)
+        self.n_frames = 1
         if cnn_out_channels is None:
             cnn_out_channels = [16, 32, 32]
-        n_input_channels = observation_space.shape[0]
+        if len(observation_space.shape) == 3:
+            n_input_channels = observation_space.shape[0]
+            sample = observation_space.sample()[None]
+        elif len(observation_space.shape) == 4:
+            n_input_channels = observation_space.shape[-1]
+            self.n_frames = observation_space.shape[0]
+            # assert features_dim/self.n_frames == features_dim//self.n_frames, 'features_dim has to be divisible by n_frames'
+            sample = observation_space.sample().transpose(0,3,1,2)
+        super(CustomizableCNN, self).__init__(observation_space, features_dim)
+        
         self.cnn = nn.Sequential(
             nn.Conv2d(n_input_channels, cnn_out_channels[0], kernel_size=8, stride=4, padding=0),
             nn.ReLU(),
@@ -38,13 +48,22 @@ class CustomizableCNN(BaseFeaturesExtractor):
 
         # Compute shape by doing one forward pass
         with th.no_grad():
-            n_flatten = self.cnn(th.as_tensor(observation_space.sample()[None]).float()).shape[1]
+            n_flatten = self.cnn(th.as_tensor(sample).float()).shape[1]
 
         self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        return self.linear(self.cnn(observations))
+        if self.n_frames == 1:
+            out :th.Tensor = self.linear(self.cnn(observations))
+        else:
+            observations = observations.permute(0, 1, 4, 2, 3)
+            observations = observations.reshape(-1, *observations.shape[2:])
+            out :th.Tensor = self.linear(self.cnn(observations)).reshape(observations.shape[0]//self.n_frames, self.n_frames, -1)
 
+            future_biased_weighting = (((th.arange(self.n_frames) + 1)/(2*self.n_frames)) + 0.5).view(1,-1,1) # should be a line from 0.5 for the oldest frame to 1 for the newest one
+            out = (future_biased_weighting * out).mean(dim=1)
+        
+        return out
 
 class CustomizableFeaturesExtractor(BaseFeaturesExtractor):
     def __init__(self, observation_space: gym.spaces.Dict, features_dim= 128, cnn_out_channels= None):
@@ -85,13 +104,12 @@ class CustomizableFeaturesExtractor(BaseFeaturesExtractor):
         # self.extractors contain nn.Modules that do all the processing.
         for key, extractor in self.extractors.items():
             encoded_tensor_list.append(extractor(observations[key]))
-
         # Return a (B, self._features_dim) PyTorch tensor, where B is batch dimension.
         return th.cat(encoded_tensor_list, dim=1)
 
 class DropoutMultiInputActorCriticPolicy(MultiInputActorCriticPolicy):
 
-    def __init__(self, *args, dropout_rate = 0.5, **kwargs):
+    def __init__(self, *args, dropout_rate = 0.25, **kwargs):
         self.dropout_rate = dropout_rate
         super().__init__(*args, **kwargs)
 
@@ -157,3 +175,6 @@ class DropoutMlpExtractor(nn.Module):
 
     def forward_critic(self, features: th.Tensor) -> th.Tensor:
         return self.value_net(features)
+# %%
+# obs_space = spaces.Box(low=0, high= 1, shape=(10, 128, 128, 4))
+# cnn = CustomizableCNN(obs_space)

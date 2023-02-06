@@ -83,7 +83,7 @@ if __name__ == "__main__":
         env = ModularDRLEnv(env_config)
         if not run_config["load_model"]:
             # no extra case for recurrent model here, this would act exatcly the same way here as a new PPO does
-            model = PPO("MultiInputPolicy", env, verbose=1)
+            model = PPO("MultiInputPolicy", env, policy_kwargs=run_config["custom_policy"], verbose=1)
         else:
             if run_config["recurrent"]:
                 model = RecurrentPPO.load(run_config["model_path"], env=env)
