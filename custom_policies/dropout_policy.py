@@ -62,6 +62,8 @@ class CustomizableCNN(BaseFeaturesExtractor):
             observations = observations.reshape(-1, *observations.shape[2:])
             out :th.Tensor = self.linear(self.cnn(observations)).reshape(observations.shape[0]//self.n_frames, self.n_frames, -1)
 
+            print(out.device, self.future_biased_weighting.device)
+
             out = (self.future_biased_weighting * out).mean(dim=1)
         
         return out
