@@ -98,6 +98,7 @@ env:
   world:
     type: "RandomObstacle"
     config:
+      workspace_boundaries: [-2, 2, -2, 2, 0, 5]
       # type specific settings
       # int, number of static obstacles
       num_static_obstacles: 3
