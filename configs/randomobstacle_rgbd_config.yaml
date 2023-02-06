@@ -96,24 +96,21 @@ env:
       
 
   world:
-    type: "TableExperiment"
+    type: "RandomObstacle"
     config:
-      workspace_boundaries: [-2, 2, -2, 2, 0, 5]
-      num_obstacles: 5
-      obstacle_velocities: []
-      num_humans: 2
-      human_positions: 
-        - [0, 0, 0]
-        - [1.6, 0, 1.4]
-      human_rotations: 
-        - [0, 0, 0]
-        - [0, 0, 90]
-      human_trajectories: 
-        - [[-2, 2, 1.4], [2, 2, 1.5]]
-        - []
-      human_reactive: [False, True]
-      ee_starts: []
-      targets: []
-      obstacle_positions: []
-      obstacle_trajectories: []
-      obstacle_training_schedule: False
+      # type specific settings
+      # int, number of static obstacles
+      num_static_obstacles: 3
+      # int, number of moving obstacles
+      num_moving_obstacles: 1
+      # floats, measurements of the three dimensions for random box obstacles
+      # format: widthmin, widthmax, lengthmin, lengthmax, heightmin, heightmax
+      box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
+      # floats, size of the random radii of sphere obstacles, format: rmin, rmax
+      sphere_measurements: [0.005, 0.02]
+      # floats, bounds for the random velocities of the moving obstacles, format: vmin, vmax
+      moving_obstacles_vels: [0.5, 2]
+      # lists of floats, directions for the moving obstacles, must either be the same length as num_moving_obstacles or empty (in which case directions will be generated randomly)
+      moving_obstacles_directions: []
+      # floats, bounds for the random trajectory lengths of the moving obstacles, format: tmin, tmax
+      moving_obstacles_trajectory_length: [0.05, 0.75]
