@@ -52,6 +52,8 @@ class CustomizableCNN(BaseFeaturesExtractor):
 
         self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
 
+        self.future_biased_weighting = (((th.arange(self.n_frames) + 1)/(2*self.n_frames)) + 0.5).view(1,-1,1) # should be a line from 0.5 for the oldest frame to 1 for the newest one
+
     def forward(self, observations: th.Tensor) -> th.Tensor:
         if self.n_frames == 1:
             out :th.Tensor = self.linear(self.cnn(observations))
@@ -60,8 +62,7 @@ class CustomizableCNN(BaseFeaturesExtractor):
             observations = observations.reshape(-1, *observations.shape[2:])
             out :th.Tensor = self.linear(self.cnn(observations)).reshape(observations.shape[0]//self.n_frames, self.n_frames, -1)
 
-            future_biased_weighting = (((th.arange(self.n_frames) + 1)/(2*self.n_frames)) + 0.5).view(1,-1,1) # should be a line from 0.5 for the oldest frame to 1 for the newest one
-            out = (future_biased_weighting * out).mean(dim=1)
+            out = (self.future_biased_weighting * out).mean(dim=1)
         
         return out
 
