@@ -1,8 +1,26 @@
+import glob
+import os
+import sys
+def listdir_nohidden(path):
+    return [file.split('/')[-1] for file in glob.glob(os.path.join(path, '*'))]
+def listdir(path):
+    return list(listdir_nohidden(path))
 import yaml
 import numpy as np
 import torch as th
 import pybullet as pyb
 from custom_policies.dropout_policy import CustomizableFeaturesExtractor
+
+def get_model(path, step_nr= None):
+    _max_step_nr = 0
+    files = listdir(path)
+    for file in files:
+        _file, _ext = os.path.splitext(file)
+        _step_nr = int(_file.split('_')[-2])
+        _max_step_nr = max(_step_nr, _max_step_nr)
+        if step_nr == _step_nr:
+            return _file + _ext
+    return '_'.join([*_file.split('_')[:-2], str(_max_step_nr), _file.split('_')[-1]]) 
 
 def walk_dict_and_convert_to_our_format(node):
     # walk through the nested dictionaries and lists
@@ -127,5 +145,6 @@ def parse_config(filepath, train):
     del config_raw["run"]["eval"]
 
     run_config = config_raw["run"].copy()
-
+    if run_config.get('model_path', '') == '':
+        run_config['model_path'] = '/'.join([run_config['save_folder'], run_config['save_name'], get_model('/'.join([run_config['save_folder'], run_config['save_name']]), run_config.get('step_nr', None))])
     return run_config, env_config

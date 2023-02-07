@@ -1,0 +1,3 @@
+[submodule "pytorch-liteflownet3"]
+	path = pytorch-liteflownet3
+	url = https://github.com/lhao0301/pytorch-liteflownet3.git

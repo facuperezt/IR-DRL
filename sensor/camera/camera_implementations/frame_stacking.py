@@ -97,7 +97,7 @@ class StaticFrameStacking(CameraBase):
 
     def reset(self):
         super().reset()
-        self.camera_args['up_vector'], _, _ = directionalVectorsFromQuaternion(getOrientationFromDirectionalVector(add_list(self.target, self.pos, -1), [0,0,-1]))
+        self.camera_args['up_vector'], _, _ = directionalVectorsFromQuaternion(getOrientationFromDirectionalVector(add_list(self.target, self.pos, -1), [0,0,1]))
         self.current_image = self._get_image()
         self.frames_buffer = np.repeat(self.current_image[np.newaxis], self.n_frames, 0)
 

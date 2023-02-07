@@ -1,12 +1,12 @@
 # config that builds the env for the table ur5 experiment
 run:
-  load_model: False  
+  load_model: True  
   model_path: ""  
   train:
     num_envs : 16
     timesteps: 15000000 
     save_freq : 30000
-    save_folder: "./models/weights"  
+    save_folder: "./models/weights"
     save_name: "PPO_rgbd_table"
     recurrent: False
     ppo_steps: 1024  
@@ -44,6 +44,7 @@ env:
   stat_buffer_size: 25  
   normalize_observations: False
   normalize_rewards: False
+  display_extra: True
   robots:
     - type: "UR5" 
       config:
