@@ -1,29 +1,31 @@
 # config that builds the env for the table ur5 experiment
 run:
-  load_model: True  
+  load_model: False  
   model_path: ""  
   train:
-    num_envs : 16
+    num_envs : 20
     timesteps: 15000000 
-    save_freq : 30000
+    save_freq : 25000
     save_folder: "./models/weights"
-    save_name: "PPO_rgbd_table"
+    save_name: "PPO_rgbd_framestacking_randomobstacle_big"
     recurrent: False
-    ppo_steps: 1024  
-    batch_size: 512
-    gamma: 0.99  
+    ppo_steps: 100  
+    batch_size: 100
+    gamma: 0.9930399
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
       use: "framestack"
-      cnn_dims: [2,4,8]
+      cnn_dims: [8,8,4]
       activation_function: "ReLU"  
       layers:
         - value_function:
-          - 64
+          - 256
+          - 128
           - 64
         - policy_function:
+          - 256
+          - 128
           - 64
-          - 32
           - 16   
       lstm:
         lstm_hidden_size: 256
@@ -37,7 +39,7 @@ run:
     display_delay: 0.00416666666 
 
 env:
-  max_steps_per_episode: 1024  
+  max_steps_per_episode: 100  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1
   sim_step: 0.00416666666  
@@ -52,7 +54,7 @@ env:
         base_position: [0, 0, 0.1]
         base_orientation: [0, 0, 0]
         resting_angles: [-90, -45, -45, -135, -90, 0]
-        control_mode: 1
+        control_mode: 2
         xyz_delta: 0.005
         rpy_delta: 0.005
       sensors:
@@ -80,14 +82,14 @@ env:
               type: 'rgbd'
               width: 64
               height: 128
-            n_frames: 8
+            n_frames: 5
       goal:
         type: "PositionCollision"
         config:
           add_to_logging: True
           continue_after_success: True
-          reward_success: 10
-          reward_collision: -5
+          reward_success: 20
+          reward_collision: -10
           reward_distance_mult: -0.01
           dist_threshold_start: 0.4
           dist_threshold_end : 0.01

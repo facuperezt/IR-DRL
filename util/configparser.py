@@ -145,6 +145,6 @@ def parse_config(filepath, train):
     del config_raw["run"]["eval"]
 
     run_config = config_raw["run"].copy()
-    if run_config.get('model_path', '') == '':
+    if run_config.get('model_path', '') == '' and run_config['load_model']:
         run_config['model_path'] = '/'.join([run_config['save_folder'], run_config['save_name'], get_model('/'.join([run_config['save_folder'], run_config['save_name']]), run_config.get('step_nr', None))])
     return run_config, env_config
