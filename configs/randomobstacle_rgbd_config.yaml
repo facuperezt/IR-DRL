@@ -75,15 +75,15 @@ env:
         #       upper_arm: [10, 10]
         #     render: False
         #     indicator: True
-        - type: "FrameStackingCamera"
+        - type: "Floating"
           config:
-            name: "framestacking"
+            name: "FloatingCamera"
             position: [0,1.2,0.5]
             camera_args: 
               type: 'rgbd'
               width: 64
               height: 128
-            n_frames: 5
+            # n_frames: 5
       goal:
         type: "PositionCollision"
         config:
