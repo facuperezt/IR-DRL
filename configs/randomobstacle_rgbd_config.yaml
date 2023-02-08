@@ -16,6 +16,7 @@ run:
     custom_policy:
       use: "framestack"
       cnn_dims: [8,8,4]
+      features_dim: 24
       activation_function: "ReLU"  
       layers:
         - value_function:
