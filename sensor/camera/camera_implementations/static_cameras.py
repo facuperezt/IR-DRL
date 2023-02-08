@@ -37,7 +37,8 @@ class StaticFloatingCamera(CameraBase):
     floating camera at position, if target is None, the camera will follow the robot's effector.
     """
 
-    def __init__(self, position: List, target: List, camera_args : CameraArgs = None, name : str = 'default_floating', **kwargs):
+    def __init__(self, robot,  position: List, target: List, camera_args : CameraArgs = None, name : str = 'default_floating', **kwargs):
+        self.robot = robot # xd
         super().__init__(position = position, target= target, camera_args= camera_args, name= name, **kwargs)
 
     def _adapt_to_environment(self):
