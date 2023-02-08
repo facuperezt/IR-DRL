@@ -14,7 +14,7 @@ run:
     gamma: 0.9930399
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
-      use: "framestacking"
+      use: "framestack"
       cnn_dims: [8,8,4]
       features_dim: 24
       activation_function: "ReLU"  
