@@ -1,6 +1,6 @@
 # config that builds the env for the table ur5 experiment
 run:
-  load_model: False  
+  load_model: True  
   model_path: ""  
   train:
     num_envs : 40
