@@ -86,7 +86,7 @@ env:
               height: 128
             # n_frames: 5
       goal:
-        type: "PositionCollision"
+        type: "PositionCollision_ext"
         config:
           add_to_logging: True
           continue_after_success: True
