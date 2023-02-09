@@ -7,14 +7,14 @@ run:
     timesteps: 15000000 
     save_freq : 25000
     save_folder: "./models/weights"
-    save_name: "PPO_rgbd_framestacking_randomobstacle_big"
-    recurrent: False
+    save_name: "PPO_rgbd_recurrent_randomobstacle_big"
+    recurrent: True
     ppo_steps: 400  
     batch_size: 900
     gamma: 0.9930399
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
-      use: "framestack"
+      use: False
       cnn_dims: [8,8,4]
       features_dim: 24
       activation_function: "ReLU"  
