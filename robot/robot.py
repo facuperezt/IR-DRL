@@ -200,7 +200,7 @@ class Robot(ABC):
 
         :param desired_joints_angles: Vector containing the desired new joint angles
         """
-
+        desired_joints_angles = np.asarray(desired_joints_angles)
         # clip desired angles at max/min
         upper_limit_mask = desired_joints_angles > self.joints_limits_upper
         lower_limit_mask = desired_joints_angles < self.joints_limits_lower

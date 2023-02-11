@@ -26,6 +26,7 @@ class CustomizableCNN(BaseFeaturesExtractor):
         self.n_frames = 1
         if cnn_out_channels is None:
             cnn_out_channels = [16, 32, 32]
+        assert type(cnn_out_channels) is list and len(cnn_out_channels) == 3, 'cnn_out_channels has to be a list of len 3'
         if len(observation_space.shape) == 3:
             n_input_channels = observation_space.shape[0]
             sample = observation_space.sample()[None]
@@ -69,17 +70,49 @@ class CustomizableCNN(BaseFeaturesExtractor):
         
         return out
 
+class ObstacleRadiusExtractor(BaseFeaturesExtractor):
+
+    def __init__(self, observation_space: gym.spaces.Box, linear_sizes = None, cnn_sizes= None, features_dim: int = None):
+        if linear_sizes is None:
+            linear_sizes = [int(observation_space.shape[0] * observation_space.shape[1]/2), int(observation_space.shape[0] * observation_space.shape[1]/4)]
+        if features_dim is None:
+            features_dim = int(observation_space.shape[0] * observation_space.shape[1] / 8)
+        if cnn_sizes is None:
+            cnn_sizes = [2, 1]
+
+        super().__init__(observation_space, features_dim)
+
+        # cnn_channel_sizes = [observation_space.shape[0], *cnn_sizes]
+        # cnn_layers = []
+        # for i in range(len(cnn_channel_sizes) - 1):
+        #     cnn_layers.append(nn.Conv1d(cnn_channel_sizes[i], cnn_channel_sizes[i+1], 1))
+        #     cnn_layers.append(nn.LeakyReLU())
+
+        # self.cnn = nn.Sequential(*cnn_layers, nn.Flatten())
+
+        # # Compute shape by doing one forward pass
+        # with th.no_grad():
+        #     n_flatten = self.cnn(th.as_tensor(observation_space.sample()).float()).shape[1]
+
+        linear_layer_sizes = [observation_space.shape[0] * observation_space.shape[1], *linear_sizes, features_dim]
+
+        linear_layers = [nn.Flatten()]
+        for i in range(len(linear_layer_sizes)-1):
+            linear_layers.append(nn.Linear(linear_layer_sizes[i], linear_layer_sizes[i+1]))
+            linear_layers.append(nn.LeakyReLU())
+
+        self.linear = nn.Sequential(*linear_layers)
+
+    def forward(self, observations: th.Tensor) -> th.Tensor:
+        return self.linear(observations)
+
+
 class CustomizableFeaturesExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: gym.spaces.Dict, features_dim= 128, cnn_out_channels= None):
+    def __init__(self, observation_space: gym.spaces.Dict, args= None):
         # We do not know features-dim here before going over all the items,
         # so put something dummy for now. PyTorch requires calling
         # nn.Module.__init__ before adding modules
-        super(CustomizableFeaturesExtractor, self).__init__(observation_space, features_dim=features_dim)
-
-        if cnn_out_channels is None:
-            cnn_out_channels = [8, 16, 32]
-        else:
-            assert type(cnn_out_channels) is list and len(cnn_out_channels) == 3, 'cnn_dims has to be a list of len 3'
+        super(CustomizableFeaturesExtractor, self).__init__(observation_space, features_dim=1)
 
         extractors = {}
 
@@ -90,8 +123,11 @@ class CustomizableFeaturesExtractor(BaseFeaturesExtractor):
             if 'camera' in key:
                 # We will just downsample one channel of the image by 4x4 and flatten.
                 # Assume the image is single-channel (subspace.shape[0] == 0)
-                extractors[key] = CustomizableCNN(subspace, cnn_out_channels, features_dim)
-                total_concat_size += features_dim
+                extractors[key] = CustomizableCNN(subspace, **args)
+                total_concat_size += extractors[key].features_dim
+            elif 'obstacleradius' in key:
+                extractors[key] = ObstacleRadiusExtractor(subspace, **args)
+                total_concat_size += extractors[key].features_dim
             else:
                 # Flatten it
                 extractors[key] = nn.Flatten() #DummyBatchFlatten()

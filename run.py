@@ -18,6 +18,7 @@ run_config, env_config = parse_config(args.configfile, args.train)
 
 # we import the rest here because this takes quite some time and we want the arg parsing to be fast and responsive
 from gym_env.environment import ModularDRLEnv
+from gym_env.env_table import ModularDRLTableEnv
 from stable_baselines3 import PPO, TD3, SAC
 from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
@@ -48,7 +49,7 @@ if __name__ == "__main__":
         def return_train_env_outer(i):
             def return_train_env_inner():
                 env_config["env_id"] = i
-                env = ModularDRLEnv(env_config)
+                env = ModularDRLTableEnv(env_config)
                 return env
             return return_train_env_inner
         
@@ -80,7 +81,7 @@ if __name__ == "__main__":
 
     else:
         env_config["env_id"] = 0
-        env = ModularDRLEnv(env_config)
+        env = ModularDRLTableEnv(env_config)
         if not run_config["load_model"]:
             # no extra case for recurrent model here, this would act exatcly the same way here as a new PPO does
             model = PPO("MultiInputPolicy", env, policy_kwargs=run_config["custom_policy"], verbose=1)

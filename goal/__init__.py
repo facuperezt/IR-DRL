@@ -20,4 +20,4 @@ class GoalRegistry:
         return inner_wrapper
 
 GoalRegistry.register('PositionCollision')(PositionCollisionGoal)
-GoalRegistry.register('PositionCollision_ext')(PositionCollisionGoal_Extended)
+GoalRegistry.register('JointsCollision')(JointsCollisionGoal)

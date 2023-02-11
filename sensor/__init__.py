@@ -1,6 +1,7 @@
 from .positional import *
 from .lidar import *
 from .camera import *
+from .unrealistic import *
 from .sensor import Sensor
 
 class SensorRegistry:
@@ -31,3 +32,4 @@ SensorRegistry.register('Floating')(StaticFloatingCamera)
 SensorRegistry.register('FloatingFollowEffector')(StaticFloatingCameraFollowEffector)
 SensorRegistry.register('BuddyRobotCamera')(BuddyRobotCamera)
 SensorRegistry.register('FrameStackingCamera')(StaticFrameStacking)
+SensorRegistry.register('ObstacleCenterRadius')(ObstacleCenterRadius)

@@ -4,16 +4,13 @@ from robot.robot import Robot
 from gym.spaces import Box
 import pybullet as pyb
 from functools import reduce
+from sensor import JointsSensor
 
 __all__ = [
-    'PositionCollisionGoal',
-    ]
+    'JointsCollisionGoal',
+]
 
-class PositionCollisionGoal(Goal):
-    """
-    This class implements a goal of reaching a certain position while avoiding collisions.
-    The reward function follows Yifan's code.
-    """
+class JointsCollisionGoal(Goal):
 
     def __init__(self, robot: Robot, 
                        normalize_rewards: bool, 
@@ -30,6 +27,7 @@ class PositionCollisionGoal(Goal):
                        dist_threshold_increment_start=1e-2,
                        dist_threshold_increment_end=1e-3,
                        dist_threshold_overwrite:float=None):
+
         super().__init__(robot, normalize_rewards, normalize_observations, train, True, add_to_logging, max_steps, continue_after_success)
 
         # set output name for observation space
@@ -62,31 +60,32 @@ class PositionCollisionGoal(Goal):
         self.normalizing_constant_b_reward = 1 - self.normalizing_constant_a_reward * max_reward_value
         #     observation
         #       get maximum ranges from world associated with robot
-        vec_distance_max = np.array([self.robot.world.x_max - self.robot.world.x_min, self.robot.world.y_max - self.robot.world.y_min, self.robot.world.z_max - self.robot.world.z_min])
+        j : JointsSensor = self.robot.joints_sensor
+        vec_distance_max = self.robot.joints_limits_upper - self.robot.joints_limits_lower
         vec_distance_min = -1 * vec_distance_max
         distance_max = np.linalg.norm(vec_distance_max)
         #       constants
-        self.normalizing_constant_a_obs = np.zeros(4)  # 3 for difference vector and 1 for distance itself
-        self.normalizing_constant_b_obs = np.zeros(4)  # 3 for difference vector and 1 for distance itself
-        self.normalizing_constant_a_obs[:3] = 2 / (vec_distance_max - vec_distance_min)
-        self.normalizing_constant_a_obs[3] = 1 / distance_max  # distance only between 0 and 1
-        self.normalizing_constant_b_obs[:3] = np.ones(3) - np.multiply(self.normalizing_constant_a_obs[:3], vec_distance_max)
-        self.normalizing_constant_b_obs[3] = 1 - self.normalizing_constant_a_obs[3] * distance_max  # this is 0, but keeping it in the code for symmetry
+        self.normalizing_constant_a_obs = np.zeros(j.joints_dims + 1)  # joints_dims for difference vector and 1 for distance itself
+        self.normalizing_constant_b_obs = np.zeros(j.joints_dims + 1)  # joints_dims for difference vector and 1 for distance itself
+        self.normalizing_constant_a_obs[:j.joints_dims] = 2 / (vec_distance_max - vec_distance_min)
+        self.normalizing_constant_a_obs[j.joints_dims] = 1 / distance_max  # distance only between 0 and 1
+        self.normalizing_constant_b_obs[:j.joints_dims] = np.ones(j.joints_dims) - np.multiply(self.normalizing_constant_a_obs[:j.joints_dims], vec_distance_max)
+        self.normalizing_constant_b_obs[j.joints_dims] = 1 - self.normalizing_constant_a_obs[3] * distance_max  # this is 0, but keeping it in the code for symmetry
 
-        # placeholders so that we have access in other methods without doing double work
         self.distance = None
         self.position = None
+        self.joints_angles = j.joints_angles
         self.reward_value = 0
-        self.shaking = 0
+        self.shaking = 0 # needed?
         self.collided = False
         self.timeout = False
-        self.out_of_bounds = False
+        self.out_of_bounds = False # needed?
         self.is_success = False
         self.done = False
-        self.past_distances = []
+        self.past_joints_angles = []
 
         # performance metric name
-        self.metric_name = "distance_threshold"
+        self.metric_name = "angle_dist_threshold"
 
         self.goal_vis = None
 
@@ -96,8 +95,8 @@ class PositionCollisionGoal(Goal):
             if self.normalize_observations:
                 ret[self.output_name ] = Box(low=-1, high=1, shape=(7,), dtype=np.float32)
             else:
-                high = np.array([self.robot.world.x_max - self.robot.world.x_min, self.robot.world.y_max - self.robot.world.y_min, self.robot.world.z_max - self.robot.world.z_min, 1], dtype=np.float32)
-                low = np.array([-self.robot.world.x_max + self.robot.world.x_min, -self.robot.world.y_max + self.robot.world.y_min, -self.robot.world.z_max + self.robot.world.z_min, 0], dtype=np.float32)
+                high = np.pi
+                low = -np.pi
                 ret[self.output_name ] = Box(low=low, high=high, shape=(7,), dtype=np.float32)
 
             return ret
@@ -107,49 +106,50 @@ class PositionCollisionGoal(Goal):
     def get_observation(self) -> dict:
         # get the data
         self.position = self.robot.position_rotation_sensor.position
-        self.target = self.robot.world.position_targets[self.robot.id]
-        dif = self.target - self.position
+        self.joints = self.robot.joints_sensor.joints_angles
+        self.target = self.robot.world.target_joint_states[self.robot.id].copy()
+        dif = self.target - self.joints
         self.distance = np.linalg.norm(dif)
 
-        self.past_distances.append(self.distance)
-        if len(self.past_distances) > 10:
-            self.past_distances.pop(0)
+        self.past_joints_angles.append(self.joints)
+        if len(self.past_joints_angles) > 10:
+            self.past_joints_angles.pop(0)
 
-        ret = np.zeros(4)
-        ret[:3] = dif
-        ret[3] = self.distance
+        ret = np.zeros(len(self.joints) + 1)
+        ret[:len(self.joints)] = dif
+        ret[len(self.joints)] = self.distance
         
         if self.normalize_observations:
             return {self.output_name: np.multiply(self.normalizing_constant_a_obs, ret) + self.normalizing_constant_b_obs} 
         else:
             return {self.output_name: ret}
 
-    def reward(self, step, action):
+    def _compare_pose_similarity(self, i):
+        return int(np.linalg.norm(self.past_joints_angles[i+1]-self.past_joints_angles[i]) < np.linalg.norm(self.past_joints_angles[i+1] - self.past_joints_angles[i-1]))
 
+    def reward(self, step, action):
+        
         reward = 0
 
         self.out_of_bounds = self._out()
         self.collided = self.robot.world.collision
 
         shaking = 0
-        if len(self.past_distances) >= 10:
-            arrow = []
-            for i in range(0,9):
-                arrow.append(0) if self.past_distances[i + 1] - self.past_distances[i] >= 0 else arrow.append(1)
-            for j in range(0,8):
-                if arrow[j] != arrow[j+1]:
-                    shaking += 1
+        if len(self.past_joints_angles) >= 10:
+            for i in range(1,9):
+                shaking += self._compare_pose_similarity(i)
+
         self.shaking = shaking
-        reward -= shaking * 0.005
+        reward -= shaking * 0.05
 
         self.is_success = False
-        if self.out_of_bounds:
-            self.done = True
-            reward += self.reward_collision / 2
-        elif self.collided:
+        # if self.out_of_bounds:
+        #     self.done = True
+        #     reward += self.reward_collision / 2
+        if self.collided:
             self.done = True
             reward += self.reward_collision
-        elif self.distance < self.distance_threshold:
+        elif (self.joints - self.target < self.distance_threshold).all():
             self.done = True
             self.is_success = True
             reward += self.reward_success
@@ -161,13 +161,18 @@ class PositionCollisionGoal(Goal):
             self.done = False
             reward += self.reward_distance_mult * self.distance
         
+
+        reward -= np.sum(np.array(action)**2 / (len(action))) * 2
+
+        if step < 20 and self.out_of_bounds:
+            reward += self.reward_collision /2
+        
         self.reward_value = reward
         if self.normalize_rewards:
             self.reward_value = self.normalizing_constant_a_reward * self.reward_value + self.normalizing_constant_b_reward
-        
-        # return
-        return self.reward_value, self.is_success, self.done, self.timeout, self.out_of_bounds    
 
+        return self.reward_value, self.is_success, self.done, self.timeout, self.out_of_bounds
+    
     def on_env_reset(self, success_rate):
         
         self.timeout = False
@@ -177,15 +182,17 @@ class PositionCollisionGoal(Goal):
         self.out_of_bounds = False
         
         # set the distance threshold according to the success of the training
-        if self.train: 
+        if True or self.train: 
 
             # calculate increment
             ratio_start_end = (self.distance_threshold - self.distance_threshold_end) / (self.distance_threshold_start - self.distance_threshold_end)
             increment = (self.distance_threshold_increment_start - self.distance_threshold_increment_end) * ratio_start_end + self.distance_threshold_increment_end
             if success_rate > 0.8 and self.distance_threshold > self.distance_threshold_end:
-                self.distance_threshold -= increment
+                # self.robot.world.num_static_obstacles -= 1
+                self.distance_threshold -= increment 
             elif success_rate < 0.8 and self.distance_threshold < self.distance_threshold_start:
-                #self.distance_threshold += increment / 25  # upwards movement should be slower # DISABLED
+                # self.robot.world.num_static_obstacles += 1
+                self.distance_threshold += increment  # upwards movement should be slower
                 pass
             if self.distance_threshold > self.distance_threshold_start:
                 self.distance_threshold = self.distance_threshold_start
@@ -195,21 +202,22 @@ class PositionCollisionGoal(Goal):
         return self.metric_name, self.distance_threshold, True, True
 
     def build_visual_aux(self):
-        # build a sphere of distance_threshold size around the target
-        self.target = self.robot.world.position_targets[self.robot.id]
-        self.goal_vis = pyb.createMultiBody(baseMass=0,
-                            baseVisualShapeIndex=pyb.createVisualShape(shapeType=pyb.GEOM_SPHERE, radius=self.distance_threshold, rgbaColor=[0, 1, 0, 1]),
-                            basePosition=self.target)
-
-    def get_data_for_logging(self) -> dict:
-        logging_dict = dict()
-
-        logging_dict["shaking_" + self.robot.name] = self.shaking
-        logging_dict["reward_" + self.robot.name] = self.reward_value
-        logging_dict["distance_" + self.robot.name] = self.distance
-        logging_dict["distance_threshold_" + self.robot.name] = self.distance_threshold
-
-        return logging_dict
+        if self.goal_vis is None:
+            self.goal_vis = pyb.loadURDF("robots/predefined/ur5/urdf/ur5_no_collision.urdf", basePosition=self.robot.base_position.tolist(), baseOrientation=self.robot.base_orientation.tolist(), useFixedBase=True, globalScaling=1)
+            self.joints_info = [pyb.getJointInfo(self.goal_vis, i) for i in range(pyb.getNumJoints(self.goal_vis))]
+            self.joints_ids = np.array([j[0] for j in self.joints_info if j[2] == pyb.JOINT_REVOLUTE])
+        target = self.robot.world.target_joint_states[self.robot.id].copy()
+        for i in range(len(self.joints_ids)):
+            pyb.resetJointState(self.goal_vis, self.joints_ids[i], target[i])
+        
+        
+        
+        # # build a sphere of distance_threshold size around the target
+        # self.target = self.robot.world.position_targets[self.robot.object_id]
+        # self.goal_vis = pyb.createMultiBody(baseMass=0,
+        #                     baseVisualShapeIndex=pyb.createVisualShape(shapeType=pyb.GEOM_SPHERE, radius=self.distance_threshold, rgbaColor=[0, 1, 0, 1]),
+        #                     basePosition=self.target)
+        pass
 
     ###################
     # utility methods #
@@ -225,5 +233,3 @@ class PositionCollisionGoal(Goal):
         elif z > self.robot.world.z_max or z < self.robot.world.z_min:
             return True
         return False
-
-

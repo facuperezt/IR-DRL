@@ -87,6 +87,11 @@ def parse_config(filepath, train):
             'features_extractor_kwargs': {
                 "cnn_out_channels" : config_raw["run"]["custom_policy"]["cnn_dims"]},
                 }
+    elif config_raw["run"]["train"]["custom_policy"]["use"] == "CustomFeaturesExtractor":
+        config_raw["run"]["custom_policy"] = {
+            'features_extractor_class': CustomizableFeaturesExtractor,
+            'features_extractor_kwargs' : {"args" : config_raw["run"]["custom_policy"]["args"]}
+        }
     else:
         # get activation function
         if config_raw["run"]["train"]["custom_policy"]["activation_function"] == "ReLU":
