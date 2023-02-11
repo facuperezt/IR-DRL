@@ -3,14 +3,14 @@ run:
   load_model: False  
   model_path: ""  
   train:
-    num_envs : 16
-    timesteps: 15000000 
-    save_freq : 30000
+    num_envs : 32
+    timesteps: 5000000 
+    save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_tableworld_default"
+    save_name: "PPO_tableworld_one"
     recurrent: False
     ppo_steps: 256  
-    batch_size: 1024
+    batch_size: 2048
     gamma: 0.99321012399
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
@@ -34,7 +34,7 @@ run:
 
   eval:
     max_episodes: -1  
-    logging: 1  
+    logging: 0
     display_delay: 0.00416666666 
 
 env:
