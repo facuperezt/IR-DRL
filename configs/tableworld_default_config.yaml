@@ -69,7 +69,7 @@ env:
           add_to_logging: True
           continue_after_success: True
           reward_success: 50
-          reward_collision: -10
+          reward_collision: -20
           reward_distance_mult: -0.001
           dist_threshold_start: 3
           dist_threshold_end : 0.1
@@ -85,6 +85,6 @@ env:
       num_moving_obstacles: 5
       box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
       sphere_measurements: [0.05, 0.2]
-      moving_obstacles_vels: [0.5, 2]
+      moving_obstacles_vels: [0.5, 1]
       moving_obstacles_directions: []
       moving_obstacles_trajectory_length: [0.05, 0.75]
