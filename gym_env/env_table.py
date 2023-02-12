@@ -112,7 +112,7 @@ class ModularDRLTableEnv(gym.Env):
                 jv = False
             joint_sens_config = {"normalize": self.normalize_observations, "add_to_observation_space": True, 
                                  "add_to_logging": True, "sim_step": self.sim_step, "update_steps": 1, "robot": robot, "add_joint_velocities": jv}
-            posrot_sens_config = {"normalize": self.normalize_observations, "add_to_observation_space": True, 
+            posrot_sens_config = {"normalize": self.normalize_observations, "add_to_observation_space": False, 
                                  "add_to_logging": True, "sim_step": self.sim_step, "update_steps": 1, "robot": robot,
                                  "link_id": robot.end_effector_link_id, "quaternion": True}
             new_rob_joints_sensor = SensorRegistry.get("Joints")(**joint_sens_config)

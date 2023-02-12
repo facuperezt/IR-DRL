@@ -116,7 +116,7 @@ class JointsCollisionGoal(Goal):
             self.past_joints_angles.pop(0)
 
         ret = np.zeros(len(self.joints) + 1)
-        ret[:len(self.joints)] = dif
+        ret[:len(self.joints)] = self.target
         ret[len(self.joints)] = self.distance
         
         if self.normalize_observations:
@@ -136,20 +136,21 @@ class JointsCollisionGoal(Goal):
 
         shaking = 0
         if len(self.past_joints_angles) >= 10:
-            for i in range(1,9):
+            for i in range(1,len(self.past_joints_angles) - 1):
                 shaking += self._compare_pose_similarity(i)
-
         self.shaking = shaking
-        reward -= shaking * 0.05
+        reward -= shaking / len(self.past_joints_angles) - 2
+
+        if len(self.past_joints_angles) >= 2:
+            reward += 1 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else 1
+
 
         self.is_success = False
-        # if self.out_of_bounds:
-        #     self.done = True
-        #     reward += self.reward_collision / 2
+        # reward += (np.abs(self.joints - self.target) < self.distance_threshold).sum() * 0.1
         if self.collided:
             self.done = True
             reward += self.reward_collision
-        elif (self.joints - self.target < self.distance_threshold).all():
+        elif (np.abs(self.joints - self.target) < self.distance_threshold).all():
             self.done = True
             self.is_success = True
             reward += self.reward_success
@@ -162,10 +163,7 @@ class JointsCollisionGoal(Goal):
             reward += self.reward_distance_mult * self.distance
         
 
-        reward -= np.sum(np.array(action)**2 / (len(action))) * 2
-
-        if step < 20 and self.out_of_bounds:
-            reward += self.reward_collision /2
+        reward -= np.sum(np.array(action)**2 / (len(action)/2))
         
         self.reward_value = reward
         if self.normalize_rewards:
@@ -188,12 +186,11 @@ class JointsCollisionGoal(Goal):
             ratio_start_end = (self.distance_threshold - self.distance_threshold_end) / (self.distance_threshold_start - self.distance_threshold_end)
             increment = (self.distance_threshold_increment_start - self.distance_threshold_increment_end) * ratio_start_end + self.distance_threshold_increment_end
             if success_rate > 0.8 and self.distance_threshold > self.distance_threshold_end:
-                # self.robot.world.num_static_obstacles -= 1
+                if success_rate == 1: self.robot.world.num_static_obstacles += 1
                 self.distance_threshold -= increment 
-            elif success_rate < 0.8 and self.distance_threshold < self.distance_threshold_start:
-                # self.robot.world.num_static_obstacles += 1
+            elif success_rate < 0.2 and self.distance_threshold < self.distance_threshold_start:
+                if success_rate == 0: self.robot.world.num_static_obstacles -= 1
                 self.distance_threshold += increment  # upwards movement should be slower
-                pass
             if self.distance_threshold > self.distance_threshold_start:
                 self.distance_threshold = self.distance_threshold_start
             if self.distance_threshold < self.distance_threshold_end:
@@ -218,6 +215,16 @@ class JointsCollisionGoal(Goal):
         #                     baseVisualShapeIndex=pyb.createVisualShape(shapeType=pyb.GEOM_SPHERE, radius=self.distance_threshold, rgbaColor=[0, 1, 0, 1]),
         #                     basePosition=self.target)
         pass
+
+    def get_data_for_logging(self) -> dict:
+        logging_dict = {}
+
+        logging_dict["shaking_" + self.robot.name] = self.shaking
+        logging_dict["reward_" + self.robot.name] = self.reward_value
+        logging_dict["distance_" + self.robot.name] = self.distance
+        logging_dict["distance_threshold_" + self.robot.name] = self.distance_threshold
+
+        return logging_dict
 
     ###################
     # utility methods #

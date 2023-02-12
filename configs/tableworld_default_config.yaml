@@ -23,6 +23,7 @@ run:
           - 64
           - 32
         - policy_function:
+          - 128
           - 64
           - 32
           - 16   
@@ -34,7 +35,7 @@ run:
 
   eval:
     max_episodes: -1  
-    logging: 0
+    logging: 1
     display_delay: 0.00416666666 
 
 env:
