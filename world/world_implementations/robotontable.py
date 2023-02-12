@@ -24,7 +24,8 @@ class TableWorld(World):
                        sphere_measurements: list=[0.005, 0.02],
                        moving_obstacles_vels: list=[0.5, 2],
                        moving_obstacles_directions: list=[],
-                       moving_obstacles_trajectory_length: list=[0.05, 0.75]
+                       moving_obstacles_trajectory_length: list=[0.05, 0.75],
+                       fixed_nr_obst: bool = False,
                        ):
         """
         The world config contains the following parameters:
@@ -41,6 +42,8 @@ class TableWorld(World):
         # TODO: add random rotations for the plates
 
         super().__init__(workspace_boundaries, sim_step, env_id)
+
+        self.fixed_nr_obst = fixed_nr_obst
 
         self.num_static_obstacles = num_static_obstacles
         self.num_moving_obstacles = num_moving_obstacles
@@ -63,7 +66,7 @@ class TableWorld(World):
         self.ground_and_table_id.append(pyb.loadURDF(pyb_d.getDataPath()+"/table/table.urdf", useFixedBase=True, globalScaling=1.75))
 
     def build(self):
-        random_object_amount = np.random.rand()
+        random_object_amount = np.random.rand() if not self.fixed_nr_obst else 1
         # add the moving obstacles
         while len(self.obstacle_objects)  < int(random_object_amount * (self.num_moving_obstacles + self.num_static_obstacles)):
             
