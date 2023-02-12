@@ -7,7 +7,7 @@ run:
     timesteps: 5000000 
     save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_tableworld_one"
+    save_name: "PPO_tableworld_two"
     recurrent: False
     ppo_steps: 256  
     batch_size: 2048
