@@ -11,6 +11,11 @@
         <color rgba="0.0 0.0 0 0.25"/>
       </material>
     </visual> 
+    <inertial>
+      <mass value="0.0"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.00443333156" ixy="0.0" ixz="0.0" iyy="0.00443333156" iyz="0.0" izz="0.0072"/>
+    </inertial>
   </link>
 
   <joint name="shoulder_pan_joint" type="revolute">
@@ -29,6 +34,11 @@
         <color rgba="1.0 0.98039 0.98039 0.25"/>
       </material>
     </visual>
+    <inertial>
+      <mass value="3.7"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.5"/>
+      <inertia ixx="0.010267495893" ixy="0.0" ixz="0.0" iyy="0.010267495893" iyz="0.0" izz="0.00666"/>
+    </inertial>
   </link>
   <joint name="shoulder_lift_joint" type="revolute">
     <parent link="shoulder_link"/>
@@ -46,6 +56,11 @@
         <color rgba="0.0 0.0 0 0.25"/>
       </material>
     </visual>
+    <inertial>
+      <mass value="8.393"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.28"/>
+      <inertia ixx="0.22689067591" ixy="0.0" ixz="0.0" iyy="0.22689067591" iyz="0.0" izz="0.0151074"/>
+    </inertial>
   </link>
   <joint name="elbow_joint" type="revolute">
     <parent link="upper_arm_link"/>
@@ -63,6 +78,11 @@
         <color rgba="1.0 0.98039 0.98039 0.25"/>
       </material>
     </visual>
+    <inertial>
+      <mass value="2.275"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.25"/>
+      <inertia ixx="0.049443313556" ixy="0.0" ixz="0.0" iyy="0.049443313556" iyz="0.0" izz="0.004095"/>
+    </inertial>
   </link>
   <joint name="wrist_1_joint" type="revolute">
     <parent link="forearm_link"/>
@@ -81,6 +101,11 @@
         <color rgba="0.0 0.0 0 0.25"/>
       </material>
     </visual>
+    <inertial>
+      <mass value="1.219"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.111172755531" ixy="0.0" ixz="0.0" iyy="0.111172755531" iyz="0.0" izz="0.21942"/>
+    </inertial>
   </link>
   <joint name="wrist_2_joint" type="revolute">
     <parent link="wrist_1_link"/>
@@ -98,6 +123,11 @@
         <color rgba="1.0 0.98039 0.98039 0.25"/>
       </material>
     </visual>
+    <inertial>
+      <mass value="1.219"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.111172755531" ixy="0.0" ixz="0.0" iyy="0.111172755531" iyz="0.0" izz="0.21942"/>
+    </inertial>
   </link>
   <joint name="wrist_3_joint" type="revolute">
     <parent link="wrist_2_link"/>
@@ -115,6 +145,11 @@
         <color rgba="0.0 0.0 0 0.25"/>
       </material>
     </visual>
+    <inertial>
+      <mass value="0.1879"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.0171364731454" ixy="0.0" ixz="0.0" iyy="0.0171364731454" iyz="0.0" izz="0.033822"/>
+    </inertial>
   </link>
   
   <joint name="ee_fixed_joint" type="fixed">
@@ -130,9 +165,14 @@
       </geometry>
       <origin rpy="0 0 0" xyz="0.0 0.0 -0.03"/>
       <material name="Green">
-        <color rgba="0.0 0.98039 0.48039 1.0"/>
+        <color rgba="0.0 0.98039 0.48039 0.35"/>
       </material>
     </visual>
+    <inertial>
+      <mass value="0.2"/>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <inertia ixx="0.00443333156" ixy="0.0" ixz="0.0" iyy="0.00443333156" iyz="0.0" izz="0.0072"/>
+    </inertial>
   </link>
 
 
