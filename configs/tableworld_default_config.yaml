@@ -80,7 +80,7 @@ env:
     config:
       workspace_boundaries: [-1.5, 1.5, -1.2, 1.2, 1.1, 2]
       num_static_obstacles: 5
-      num_moving_obstacles: 1
+      num_moving_obstacles: 5
       box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
       sphere_measurements: [0.05, 0.2]
       moving_obstacles_vels: [0.5, 2]

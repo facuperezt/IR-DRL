@@ -63,20 +63,21 @@ class TableWorld(World):
         self.ground_and_table_id.append(pyb.loadURDF(pyb_d.getDataPath()+"/table/table.urdf", useFixedBase=True, globalScaling=1.75))
 
     def build(self):
+        random_object_amount = np.random.rand()
         # add the moving obstacles
-        while len(self.obstacle_objects) < self.num_moving_obstacles + self.num_static_obstacles:
+        while len(self.obstacle_objects)  < int(random_object_amount * (self.num_moving_obstacles + self.num_static_obstacles)):
             
             position = np.random.uniform(low=(self.x_min, self.y_min, self.z_min), high=(self.x_max, self.y_max, self.z_max), size=(3,))
 
             # moving obstacles
-            if len(self.obstacle_objects) < self.num_moving_obstacles:
+            if len(self.obstacle_objects) < int(random_object_amount *  self.num_moving_obstacles):
                 # generate a velocity
                 move_step = np.random.uniform(low=self.vel_min, high=self.vel_max) * self.sim_step
                 # generate a trajectory length
                 trajectory_length = np.random.uniform(low=self.trajectory_length_min, high=self.trajectory_length_max)
                 # get the direction from __init__ or, if none are given, generate one at random
                 if self.allowed_directions:
-                    direction = self.allowed_directions[i]
+                    direction = choice(self.allowed_directions)
                 else:
                     direction = np.random.uniform(low=-1, high=1, size=(3,))
                 direction = (trajectory_length / np.linalg.norm(direction)) * direction
@@ -141,7 +142,7 @@ class TableWorld(World):
         starting_joint_positions = []
         for robot in self.robots_in_world:
             starting_joint_positions.append([a[0] for a in pyb.getJointStates(robot.object_id, robot.joints_ids)])
-            
+
         while True:
             tmp_target_joint_states = []
             for robot in self.robots_in_world:
