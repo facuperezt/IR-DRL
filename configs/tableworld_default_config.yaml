@@ -4,24 +4,26 @@ run:
   model_path: ""  
   train:
     num_envs : 32
-    timesteps: 5000000 
+    timesteps: 50000000 
     save_freq : 50000
     save_folder: "./models/weights"  
     save_name: "PPO_tableworld_two"
     recurrent: False
     ppo_steps: 256  
-    batch_size: 2048
+    batch_size: 4096
     gamma: 0.99321012399
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
       use: "CustomFeaturesExtractor"
       args:
-        features_dim: 69
+        features_dim: 100
       activation_function: "ReLU"  
       layers:
         - value_function:
+          -128
           - 64
           - 32
+          - 16
         - policy_function:
           - 128
           - 64
