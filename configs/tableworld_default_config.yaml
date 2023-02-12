@@ -20,7 +20,7 @@ run:
       activation_function: "ReLU"  
       layers:
         - value_function:
-          -128
+          - 128
           - 64
           - 32
           - 16
