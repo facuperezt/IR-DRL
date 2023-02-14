@@ -38,7 +38,7 @@ class ModularDRLTableEnv(gym.Env):
         # flag for rendering auxillary geometry spawned by the goals
         self.show_auxillary_geometry_goal = env_config["display_extra"]
         # maximum steps in an episode before timeout
-        self.max_steps_per_episode = env_config["max_steps_per_episode"]
+        self.max_steps_per_episode = env_config["max_steps_per_episode"] 
         # number of episodes after which the code will exit on its own, if set to -1 will continue indefinitely until stopped from the outside
         self.max_episodes = env_config["max_episodes"]  
         # 0: no logging, 1: logging for console every episode, 2: logging for console every episode and to csv after maximum number of episodes has been reached or after every episode if max_episodes is -1
@@ -290,7 +290,7 @@ class ModularDRLTableEnv(gym.Env):
                 obs_dict = {**obs_dict, **goal.get_observation()}
 
         # no normalizing here, that should be handled by the sensors and goals
-
+        
         return obs_dict
 
     def step(self, action):

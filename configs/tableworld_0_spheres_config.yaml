@@ -9,7 +9,7 @@ run:
     save_folder: "./models/weights"  
     save_name: "PPO_tableworld_7spheres"
     recurrent: False
-    TD3: True
+    TD3: False
     ppo_steps: 256
     gradient_steps: -1  
     batch_size: 1024
@@ -87,8 +87,8 @@ env:
     config:
       workspace_boundaries: [-1.5, 1.5, -1.2, 1.2, 1.1, 2]
       fixed_nr_obst: True
-      num_static_obstacles: 3
-      num_moving_obstacles: 4
+      num_static_obstacles: 0
+      num_moving_obstacles: 0
       box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
       sphere_measurements: [0.05, 0.2]
       moving_obstacles_vels: [0.5, 1.5]

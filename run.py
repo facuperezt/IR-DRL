@@ -19,7 +19,7 @@ run_config, env_config = parse_config(args.configfile, args.train)
 # we import the rest here because this takes quite some time and we want the arg parsing to be fast and responsive
 from gym_env.environment import ModularDRLEnv
 from gym_env.env_table import ModularDRLTableEnv
-from stable_baselines3 import PPO, TD3, SAC
+from stable_baselines3 import PPO, TD3, SAC, HerReplayBuffer
 from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback
@@ -64,13 +64,17 @@ if __name__ == "__main__":
 
         # create or load model
         if not run_config["load_model"]:
-            if run_config["recurrent"]:
+            if run_config["TD3"]:
+                model = TD3("MultiInputPolicy", envs, replay_buffer_class=HerReplayBuffer, replay_buffer_kwargs=run_config["replay_buffer_kwargs"], policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], gradient_steps=run_config["gradient_steps"], batch_size=run_config["batch_size"])
+            elif run_config["recurrent"]:
                 model = RecurrentPPO("MultiInputLstmPolicy", envs, policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], n_steps=run_config["ppo_steps"], batch_size=run_config["batch_size"])
             else:
                 model = PPO("MultiInputPolicy", envs, policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], n_steps=run_config["ppo_steps"], batch_size=run_config["batch_size"])
             print(model.policy)
         else:
-            if run_config["recurrent"]:
+            if run_config["TD3"]:
+                model = TD3("MultiInputPolicy", envs, replay_buffer_class=HerReplayBuffer, replay_buffer_kwargs=run_config["replay_buffer_kwargs"], policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], gradient_steps=run_config["gradient_steps"], batch_size=run_config["batch_size"])
+            elif run_config["recurrent"]:
                 model = RecurrentPPO.load(run_config["model_path"], env=envs, tensorboard_log=run_config["tensorboard_folder"])
             else:
                 model = PPO.load(run_config["model_path"], env=envs, tensorboard_log=run_config["tensorboard_folder"])
@@ -83,10 +87,15 @@ if __name__ == "__main__":
         env_config["env_id"] = 0
         env = ModularDRLTableEnv(env_config)
         if not run_config["load_model"]:
-            # no extra case for recurrent model here, this would act exatcly the same way here as a new PPO does
-            model = PPO("MultiInputPolicy", env, policy_kwargs=run_config["custom_policy"], verbose=1)
+            if run_config["TD3"]:
+                model = TD3("MultiInputPolicy", env, replay_buffer_class=HerReplayBuffer, replay_buffer_kwargs=run_config["replay_buffer_kwargs"], policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], gradient_steps=run_config["gradient_steps"], batch_size=run_config["batch_size"])
+            else:
+                # no extra case for recurrent model here, this would act exatcly the same way here as a new PPO does
+                model = PPO("MultiInputPolicy", env, policy_kwargs=run_config["custom_policy"], verbose=1)
         else:
-            if run_config["recurrent"]:
+            if run_config["TD3"]:
+                model = TD3.load(run_config["model_path"], env=env)
+            elif run_config["recurrent"]:
                 model = RecurrentPPO.load(run_config["model_path"], env=env)
             else:
                 model = PPO.load(run_config["model_path"], env=env)
