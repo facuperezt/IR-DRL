@@ -209,6 +209,14 @@ class ModularDRLTableEnv(gym.Env):
         for robot in self.robots:
             robot.build()
 
+    def compute_reward(self, achieved_goal, desired_goal, info):
+        store_variables = (self.goals[0].joints.copy(), self.goals[0].target.copy())
+        reward, _, _, _, _ = self.goals[0].reward(self.steps_current_episode, None)
+        # restore variables
+        self.goals[0].joints, self.goals[0].target = store_variables
+
+        return reward
+
     def reset(self):
         # end execution if max episodes is reached
         if self.max_episodes != -1 and self.episode >= self.max_episodes:
