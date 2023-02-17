@@ -304,7 +304,8 @@ class ModularDRLTableEnv(gym.Env):
         
         return {
             'observation' : np.concatenate([obs.flatten() for obs in obs_dict.values()]),
-            'achieved_goal' : obs_dict[self.target_key]}
+            'achieved_goal' : obs_dict[self.target_key],
+            'desired_goal' : self.world.target_joint_states}
 
     def step(self, action):
         
