@@ -141,7 +141,7 @@ class JointsCollisionGoal(Goal):
         self.shaking = shaking
         reward -= shaking / len(self.past_joints_angles) - 2
         
-        reward -= np.sum(np.array(action)**2 / (len(action)/2))
+        # reward -= np.sum(np.array(action)**2 / (len(action)/2))
 
         if len(self.past_joints_angles) >= 2:
             reward += 1 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else 1
