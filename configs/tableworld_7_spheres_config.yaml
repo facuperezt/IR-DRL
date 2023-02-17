@@ -7,7 +7,7 @@ run:
     timesteps: 50000000 
     save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_tableworld_7spheres_expanded_reward"
+    save_name: "PPO_tableworld_7spheres_shorter_episodes"
     recurrent: False
     TD3: True
     ppo_steps: 256
