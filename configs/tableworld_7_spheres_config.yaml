@@ -50,11 +50,11 @@ run:
     display_delay: 0.00416666666 
 
   replay_buffer_kwargs:
-    max_episode_length: 512
+    max_episode_length: 128
     online_sampling: True
 env:
   display_extra: True
-  max_steps_per_episode: 512  
+  max_steps_per_episode: 128  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1
   sim_step: 0.00416666666  
