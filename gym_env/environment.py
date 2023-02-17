@@ -3,6 +3,7 @@ import numpy as np
 import pybullet as pyb
 from time import process_time
 import pandas as pd
+from util.recorder import Recorder
 
 # import abstracts
 from robot.robot import Robot
@@ -34,15 +35,20 @@ class ModularDRLEnv(gym.Env):
         # flag for rendering
         self.display = env_config["display"]
         # flag for rendering auxillary geometry spawned by the scenario
-        self.show_auxillary_geometry_world = env_config["display_extra"]
+        self.show_auxillary_geometry_world = env_config["show_world_aux"]
         # flag for rendering auxillary geometry spawned by the goals
-        self.show_auxillary_geometry_goal = env_config["display_extra"]
+        self.show_auxillary_geometry_goal = env_config["show_goal_aux"]
+        # flag for rendering auxillary geometry spawned by the sensors
+        self.show_auxillary_geometry_sensors = env_config["show_sensor_aux"]
         # maximum steps in an episode before timeout
         self.max_steps_per_episode = env_config["max_steps_per_episode"]
         # number of episodes after which the code will exit on its own, if set to -1 will continue indefinitely until stopped from the outside
         self.max_episodes = env_config["max_episodes"]  
         # 0: no logging, 1: logging for console every episode, 2: logging for console every episode and to csv after maximum number of episodes has been reached or after every episode if max_episodes is -1
         self.logging = env_config["logging"] 
+        # dict for determining whether and how to use the pybullet recorder plugin, always off for training
+        self.pybullet_recorder_settings = env_config["pybullet_recorder"]
+        self.pybullet_blender_recorder = None
         # whether to use static PyBullet teleporting or actually let sim time pass in its simulation
         self.use_physics_sim = env_config["use_physics_sim"]  
         # when using the physics sim, this is the amount of steps that we let pass per env step
@@ -76,9 +82,14 @@ class ModularDRLEnv(gym.Env):
         disp = pyb.DIRECT if not self.display else pyb.GUI
         pyb.connect(disp)
         pyb.configureDebugVisualizer(pyb.COV_ENABLE_SHADOWS,0)
-        pyb.setAdditionalSearchPath("./assets/")
+        self.assets_path = "./assets/"
+        pyb.setAdditionalSearchPath(self.assets_path)
         if self.use_physics_sim:
             pyb.setTimeStep(self.sim_step)
+
+        # set up the PyBullet recorder, if wanted
+        if self.pybullet_recorder_settings["use"]:
+            self.pybullet_blender_recorder = Recorder()
 
         # init world from config
         world_type = env_config["world"]["type"]
@@ -245,6 +256,9 @@ class ModularDRLEnv(gym.Env):
             for idx, robot in enumerate(self.robots):
                 if ee_starting_points[idx][0] is None:
                     continue  # nothing to do here
+                elif len(ee_starting_points[idx]) == 1:
+                    # joints
+                    self.robots[idx].moveto_joints(ee_starting_points[idx][0], False)
                 elif ee_starting_points[idx][1] is None:
                     # only position
                     self.robots[idx].moveto_xyz(ee_starting_points[idx][0], False)
@@ -277,6 +291,18 @@ class ModularDRLEnv(gym.Env):
         if self.show_auxillary_geometry_goal:
             for goal in self.goals: 
                 goal.build_visual_aux()
+        if self.show_auxillary_geometry_sensors:
+            for sensor in self.sensors:
+                sensor.delete_visual_aux()
+                sensor.build_visual_aux()
+
+        # reset the pybullet recorder and register objects
+        if self.pybullet_recorder_settings["use"]:
+            self.pybullet_blender_recorder.reset()
+            for robot in self.robots:
+                self.pybullet_blender_recorder.register_object(robot)
+            for object in self.world.obstacle_objects:
+                self.pybullet_blender_recorder.register_object(object)
 
         # turn rendering back on
         pyb.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 1)
@@ -375,6 +401,16 @@ class ModularDRLEnv(gym.Env):
             self.reward = np.sum(rewards)
         self.reward_cumulative += self.reward
 
+        # handle pybullet blender recorder
+        if self.pybullet_recorder_settings["use"]:
+            self.pybullet_blender_recorder.save_frame()
+
+        # visual help, if enabled
+        if self.show_auxillary_geometry_sensors:
+            for sensor in self.sensors:
+                sensor.delete_visual_aux()
+                sensor.build_visual_aux()
+
         # update tracking variables and stats
         self.cpu_time = process_time() - self.cpu_epoch
         self.steps_current_episode += 1
@@ -395,6 +431,11 @@ class ModularDRLEnv(gym.Env):
             if len(self.cumulated_rewards_stat) > self.stat_buffer_size:
                 self.cumulated_rewards_stat.pop(0)
 
+            # dump pybullet recorder for this episode
+            if self.pybullet_recorder_settings["use"]:
+                self.pybullet_blender_recorder.save_record("./models/env_logs/" + self.pybullet_recorder_settings["save_path"] + "_" +  str(self.episode) + ".pkl")
+
+        # handle logging
         if self.logging == 0:
             # no logging
             info = {}

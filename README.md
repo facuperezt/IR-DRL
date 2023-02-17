@@ -15,6 +15,8 @@ This repo implements a modular Gym env in which all relevant components, i.e. ro
 - tensorboard
 - zennit
 - mazelib
+- PySimpleGUI
+- urdfpy
 
 Once python is installed, you can use ```pip install -r requirements.txt``` to install the above packages in versions that work with the code in this repo.
 
@@ -37,11 +39,13 @@ Implemented:
 - Worlds (Scenarios):
     - Random Obstacles (Yifan)
     - Table Experiment with humans and random obstacles
+    - Kuka Shelf experiment
+    - World Generator
+    - Test Cases
 - Goal:
     - Position goal with collision avoidance (Yifan)
 
 Coming soon:
-- the three old testcases (one plate, two plates, moving plate)
 - variations of the testcases (different directions and angles)
 
 ## Running the code

@@ -1,6 +1,6 @@
-# config that builds the env using the World Generator
+# config that builds the env as Yifan had it
 run:
-  load_model: False  
+  load_model: True  
   model_path: ""  
   train:
     num_envs : 16  
@@ -32,7 +32,7 @@ run:
         enable_critic_lstm: True
 
   eval:
-    max_episodes: -1  
+    max_episodes: 30  
     logging: 1  
     display_delay: 0.00416666666 
     show_world_aux: True
@@ -55,9 +55,9 @@ env:
     - type: "UR5" 
       config:
         name: "ur5_1"
-        base_position: [0, 0, 1.1]
+        base_position: [0, -0.12, 0.5]
         base_orientation: [0, 0, 0]
-        resting_angles: [-180, -45, -90, -135, 90, 0]
+        resting_angles: [0, 90, -30, -120, -80, 90]
         control_mode: 0
         xyz_delta: 0.005
         rpy_delta: 0.005
@@ -92,51 +92,6 @@ env:
           dist_threshold_overwrite: "None"
 
   world:
-    type: "Generated"
+    type: "Testcases"
     config:
-      workspace_boundaries: [-2, 2, -2, 2, 0, 5]
-      obstacles:
-      - type: "shelf"
-        position: [-1.25, -1, 0]
-        rotation: [90, 0, 0]
-        params:
-          rows: 5
-          cols: 5
-          element_size: .5
-          shelf_depth: .5
-          wall_thickness: .01
-      - type: "shelf"
-        position: [-1.25, 1.5, 0]
-        rotation: [90, 0, 0]
-        scale: 1
-        params:
-          rows: 5
-          cols: 5
-          element_size: .5
-          shelf_depth: .5
-          wall_thickness: .01
-          vel: 10
-          move:
-            - [-2.5, 0.5, 1.4]
-            - [2.5, 0.5, 1.4]
-      - type: "human"
-        position: [5, 5, 0]
-        rotation: [0, 0, 0]
-        scale: 1
-        params:
-          move:
-            - [-2.5, 0.5, 1.4]
-            - [2.5, 0.5, 1.4]
-      - type: "maze"
-        position: [10, 10, 0]
-        rotation: [0, 0, 0]
-        params:
-          rows: 5
-          cols: 5
-          element_size: .5
-          element_depth: .5
-          wall_thickness: .01
-          difficulty: 1
-          connector_strict: False
-          connector_probability: 0.7
-          connector_height: 0.1
+      test_mode: 0  # randomly switch between all three test cases

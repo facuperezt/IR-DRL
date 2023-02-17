@@ -26,14 +26,16 @@ class Kukaiiwa(Robot):
         self.end_effector_link_id = 6
         self.base_link_id = 0
 
+        self.urdf_path = "robots/predefined/kuka_iiwa/model.urdf"
+
     def get_action_space_dims(self):
         return (7, 6)  # 7 joints
 
     def build(self):
-        self.object_id = pyb.loadURDF("robots/predefined/kuka_iiwa/model.urdf",
+        self.object_id = pyb.loadURDF(self.urdf_path,
                                       basePosition=self.base_position.tolist(),
                                       baseOrientation=self.base_orientation.tolist(), useFixedBase=True)
-        joints_info = [pyb.getJointInfo(self.id, i) for i in range(pyb.getNumJoints(self.id))]
+        joints_info = [pyb.getJointInfo(self.object_id, i) for i in range(pyb.getNumJoints(self.object_id))]
         self.joints_ids = np.array([j[0] for j in joints_info if j[2] == pyb.JOINT_REVOLUTE])
 
         self.moveto_joints(self.resting_pose_angles, False)

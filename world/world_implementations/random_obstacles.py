@@ -62,8 +62,10 @@ class RandomObstacleWorld(World):
         ground_plate = pyb.loadURDF("workspace/plane.urdf", [0, 0, -0.01])
         self.objects_ids.append(ground_plate)
 
+        rand_number = choice(range(self.num_moving_obstacles + self.num_static_obstacles)) + 1
+
         # add the moving obstacles
-        for i in range(self.num_moving_obstacles + self.num_static_obstacles):
+        for i in range(rand_number):
             # pick a one of the robots' starting positions randomly to...
             idx = choice(range(len(self.ee_starting_points)))
             # ... generate a random position between halfway between it and its target
@@ -118,10 +120,7 @@ class RandomObstacleWorld(World):
         for object in self.obstacle_objects:
             del object
         self.obstacle_objects = []
-        # the next three don't need to be reset, so commented out
-        #self.robots_in_world = []
-        #self.robots_with_position = []
-        #self.robots_with_orientation = []
+        self.aux_object_ids = []
 
     def update(self):
 
@@ -161,32 +160,3 @@ class RandomObstacleWorld(World):
 
     def create_rotation_target(self) -> list:
         return None  # TODO for later, just adding this so that the world starts
-
-    def build_visual_aux(self):
-        # create a visual border for the workspace
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_min, self.z_min],
-                                lineToXYZ=[self.x_min, self.y_min, self.z_max])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_max, self.z_min],
-                            lineToXYZ=[self.x_min, self.y_max, self.z_max])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_max, self.y_min, self.z_min],
-                            lineToXYZ=[self.x_max, self.y_min, self.z_max])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_max, self.y_max, self.z_min],
-                            lineToXYZ=[self.x_max, self.y_max, self.z_max])
-
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_min, self.z_max],
-                            lineToXYZ=[self.x_max, self.y_min, self.z_max])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_max, self.z_max],
-                            lineToXYZ=[self.x_max, self.y_max, self.z_max])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_min, self.z_max],
-                            lineToXYZ=[self.x_min, self.y_max, self.z_max])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_max, self.y_min, self.z_max],
-                            lineToXYZ=[self.x_max, self.y_max, self.z_max])
-        
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_min, self.z_min],
-                            lineToXYZ=[self.x_max, self.y_min, self.z_min])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_max, self.z_min],
-                            lineToXYZ=[self.x_max, self.y_max, self.z_min])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_min, self.y_min, self.z_min],
-                            lineToXYZ=[self.x_min, self.y_max, self.z_min])
-        pyb.addUserDebugLine(lineFromXYZ=[self.x_max, self.y_min, self.z_min],
-                            lineToXYZ=[self.x_max, self.y_max, self.z_min])
