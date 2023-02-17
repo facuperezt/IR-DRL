@@ -170,14 +170,25 @@ class ModularDRLTableEnv(gym.Env):
         # construct observation space from sensors and goals
         # each sensor and goal will add elements to the observation space with fitting names
         observation_space_dict = dict()
+        self.target_key = ''
         for sensor in self.sensors:
             if sensor.add_to_observation_space:
+                if 'joints' in str(type(sensor)).lower(): self.target_key = sensor.output_name
                 observation_space_dict = {**observation_space_dict, **sensor.get_observation_space_element()}  # merges the two dicts
         for goal in self.goals:
             if goal.add_to_observation_space:
                 observation_space_dict = {**observation_space_dict, **goal.get_observation_space_element()}
 
-        self.observation_space = gym.spaces.Dict(observation_space_dict)
+        observation_space_list = []
+        lows = []
+        highs = []
+        for vals in observation_space_dict.values():
+            lows.extend(vals.low.flatten())
+            highs.extend(vals.high.flatten())
+        self.observation_space = gym.spaces.Dict({
+            'observation': gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
+            'achieved_goal': observation_space_dict[self.target_key],
+            })
 
         # construct action space from robots
         # the action space will be a vector with the length of all robot's control dimensions added up
@@ -291,7 +302,9 @@ class ModularDRLTableEnv(gym.Env):
 
         # no normalizing here, that should be handled by the sensors and goals
         
-        return obs_dict
+        return {
+            'observation' : np.concatenate([obs.flatten() for obs in obs_dict.values()]),
+            'achieved_goal' : obs_dict[self.target_key]}
 
     def step(self, action):
         
