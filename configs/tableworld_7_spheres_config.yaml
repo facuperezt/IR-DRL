@@ -84,8 +84,8 @@ env:
           reward_success: 50
           reward_collision: -30
           reward_distance_mult: -0.001
-          dist_threshold_start: 2
-          dist_threshold_end : 0.1
+          dist_threshold_start: 0.5
+          dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
           dist_threshold_overwrite: "None"

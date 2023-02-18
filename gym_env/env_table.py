@@ -170,19 +170,17 @@ class ModularDRLTableEnv(gym.Env):
         # construct observation space from sensors and goals
         # each sensor and goal will add elements to the observation space with fitting names
         observation_space_dict = dict()
-        self.target_key = ''
         for sensor in self.sensors:
             if sensor.add_to_observation_space:
-                if 'joints' in str(type(sensor)).lower(): self.target_key = sensor.output_name
                 observation_space_dict = {**observation_space_dict, **sensor.get_observation_space_element()}  # merges the two dicts
         for goal in self.goals:
             if goal.add_to_observation_space:
-                observation_space_dict = {**observation_space_dict, **goal.get_observation_space_element()}
+                goal_observation_space_dict = {**observation_space_dict, **goal.get_observation_space_element()}
 
         observation_space_list = []
         lows = []
         highs = []
-        for vals in observation_space_dict.values():
+        for vals in [*observation_space_dict.values(), *goal_observation_space_dict.values()]:
             lows.extend(vals.low.flatten())
             highs.extend(vals.high.flatten())
         self.observation_space = gym.spaces.Dict({
@@ -303,18 +301,26 @@ class ModularDRLTableEnv(gym.Env):
         obs_dict = dict()
         # get the sensor data
         for sensor in self.sensors:
+            if 'joints' in str(type(sensor)): self.target_key = sensor.output_name
             if sensor.add_to_observation_space:
                 obs_dict = {**obs_dict, **sensor.get_observation()}
+        goal_obs_dict = {}
         for goal in self.goals:
             if goal.add_to_observation_space:
-                obs_dict = {**obs_dict, **goal.get_observation()}
+                goal_obs_dict = {**goal_obs_dict, **goal.get_observation()}
+        desired_goal_obs_dict = {}
+        for goal in self.goals:
+            desired_goal_obs_dict = {**desired_goal_obs_dict, **goal.get_target_as_obs()}
 
+
+        desired_target = list(desired_goal_obs_dict.values())[0][:-1]
         # no normalizing here, that should be handled by the sensors and goals
-        
+        obs_array = np.concatenate([obs.flatten() for obs in [*obs_dict.values(), *goal_obs_dict.values()]])
+        target_array = np.concatenate([desired_target if key == self.target_key else obs.flatten() for key,obs in [*obs_dict.items(), *desired_goal_obs_dict.items()]])
         return {
-            'observation' : np.concatenate([obs.flatten() for obs in obs_dict.values()]),
-            'achieved_goal' : np.concatenate([obs.flatten() for obs in obs_dict.values()]),
-            'desired_goal' : np.concatenate([np.concatenate([obs.flatten() for key,obs in obs_dict.items() if key != self.target_key]), self.world.target_joint_states]),
+            'observation' : obs_array,
+            'achieved_goal' : obs_array,
+            'desired_goal' : target_array,
             }
 
     def step(self, action):

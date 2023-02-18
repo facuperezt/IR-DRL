@@ -124,6 +124,12 @@ class JointsCollisionGoal(Goal):
         else:
             return {self.output_name: ret}
 
+    def get_target_as_obs(self) -> dict:
+        arr = np.concatenate([self.target, np.array([0])])
+        if self.normalize_observations:
+            return {'desired_' + self.output_name: np.multiply(self.normalizing_constant_a_obs, arr) + self.normalizing_constant_b_obs} 
+        return {'desired_' + self.output_name : arr}
+
     def _compare_pose_similarity(self, i):
         return int(np.linalg.norm(self.past_joints_angles[i+1]-self.past_joints_angles[i]) < np.linalg.norm(self.past_joints_angles[i+1] - self.past_joints_angles[i-1]))
 
