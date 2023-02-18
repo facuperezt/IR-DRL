@@ -187,8 +187,8 @@ class ModularDRLTableEnv(gym.Env):
             highs.extend(vals.high.flatten())
         self.observation_space = gym.spaces.Dict({
             'observation': gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
-            'achieved_goal': observation_space_dict[self.target_key],
-            'desired_goal' : observation_space_dict[self.target_key],
+            'achieved_goal': gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
+            'desired_goal' : gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
             })
 
         # construct action space from robots
@@ -313,8 +313,8 @@ class ModularDRLTableEnv(gym.Env):
         
         return {
             'observation' : np.concatenate([obs.flatten() for obs in obs_dict.values()]),
-            'achieved_goal' : obs_dict[self.target_key],
-            'desired_goal' : self.world.target_joint_states,
+            'achieved_goal' : np.concatenate([obs.flatten() for obs in obs_dict.values()]),
+            'desired_goal' : np.concatenate([np.concatenate([obs.flatten() for key,obs in obs_dict.items() if key != self.target_key]), self.world.target_joint_states]),
             }
 
     def step(self, action):
