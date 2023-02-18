@@ -7,7 +7,7 @@ run:
     timesteps: 50000000 
     save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_tableworld_7spheres"
+    save_name: "PPO_tableworld_0spheres_"
     recurrent: False
     TD3: False
     ppo_steps: 256
@@ -38,6 +38,13 @@ run:
         enable_critic_lstm: True
 
   eval:
+    show_world_aux: True
+    show_goal_aux: True
+    show_sensor_aux: True
+    pybullet_recorder:
+      use: False
+      save_path: "demo"
+      scale: 1
     max_episodes: -1  
     logging: 1
     display_delay: 0.00416666666 
@@ -46,7 +53,8 @@ run:
     max_episode_length: 512
     online_sampling: True
 env:
-  max_steps_per_episode: 512  
+  display_extra: True
+  max_steps_per_episode: 128  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1
   sim_step: 0.00416666666  
@@ -67,7 +75,7 @@ env:
         - type: "ObstacleCenterRadius"
           config:
             name: "ocr"
-            max_obstacles: 7
+            max_obstacles: 0
       goal:
         type: "JointsCollision"
         config:

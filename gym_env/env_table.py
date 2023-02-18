@@ -210,7 +210,7 @@ class ModularDRLTableEnv(gym.Env):
 
     def compute_reward(self, achieved_goal, desired_goal, info):
         store_variables = (self.goals[0].joints.copy(), self.goals[0].target.copy())
-        reward, _, _, _, _ = self.goals[0].reward(self.steps_current_episode, None)
+        reward, _, _, _, _ = self.goals[0].reward(self.steps_current_episode, self.sensors[1].get_data_for_logging()['joints_velocities_ur5_1'])
         # restore variables
         self.goals[0].joints, self.goals[0].target = store_variables
 

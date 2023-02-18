@@ -140,17 +140,17 @@ class JointsCollisionGoal(Goal):
         self.out_of_bounds = self._out()
         self.collided = self.robot.world.collision
 
-        # shaking = 0
-        # if len(self.past_joints_angles) >= 10:
-        #     for i in range(1,len(self.past_joints_angles) - 1):
-        #         shaking += self._compare_pose_similarity(i)
-        # self.shaking = shaking
-        # reward -= shaking / len(self.past_joints_angles) - 2
+        shaking = 0
+        if len(self.past_joints_angles) >= 10:
+            for i in range(1,len(self.past_joints_angles) - 1):
+                shaking += self._compare_pose_similarity(i)
+        self.shaking = shaking
+        reward -= shaking / len(self.past_joints_angles) - 2
         
-        # # reward -= np.sum(np.array(action)**2 / (len(action)/2))
+        reward -= np.sum(np.array(action)**2 / (len(action)/2))
 
-        # if len(self.past_joints_angles) >= 2:
-        #     reward += 1 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else 1
+        if len(self.past_joints_angles) >= 2:
+            reward += 1 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else 1
 
 
         self.is_success = False
