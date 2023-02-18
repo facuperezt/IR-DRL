@@ -173,9 +173,10 @@ class ModularDRLTableEnv(gym.Env):
         for sensor in self.sensors:
             if sensor.add_to_observation_space:
                 observation_space_dict = {**observation_space_dict, **sensor.get_observation_space_element()}  # merges the two dicts
+        goal_observation_space_dict = {}
         for goal in self.goals:
             if goal.add_to_observation_space:
-                goal_observation_space_dict = {**observation_space_dict, **goal.get_observation_space_element()}
+                goal_observation_space_dict = {**goal_observation_space_dict, **goal.get_observation_space_element()}
 
         observation_space_list = []
         lows = []
@@ -305,12 +306,11 @@ class ModularDRLTableEnv(gym.Env):
             if sensor.add_to_observation_space:
                 obs_dict = {**obs_dict, **sensor.get_observation()}
         goal_obs_dict = {}
+        desired_goal_obs_dict = {}
         for goal in self.goals:
             if goal.add_to_observation_space:
                 goal_obs_dict = {**goal_obs_dict, **goal.get_observation()}
-        desired_goal_obs_dict = {}
-        for goal in self.goals:
-            desired_goal_obs_dict = {**desired_goal_obs_dict, **goal.get_target_as_obs()}
+                desired_goal_obs_dict = {**desired_goal_obs_dict, **goal.get_target_as_obs()}
 
 
         desired_target = list(desired_goal_obs_dict.values())[0][:-1]
