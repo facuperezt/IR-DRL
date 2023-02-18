@@ -9,7 +9,7 @@ run:
     save_folder: "./models/weights"  
     save_name: "PPO_tableworld_0spheres_"
     recurrent: False
-    TD3: False
+    TD3: True
     ppo_steps: 256
     gradient_steps: -1  
     batch_size: 1024
