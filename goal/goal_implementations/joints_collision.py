@@ -150,11 +150,12 @@ class JointsCollisionGoal(Goal):
         reward -= np.sum(np.array(action)**2 / (len(action)/2))
 
         if len(self.past_joints_angles) >= 2:
-            reward += 1 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else 1
+            reward += 1 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else -1
 
 
         self.is_success = False
-        # reward += (np.abs(self.joints - self.target) < self.distance_threshold).sum() * 0.1
+        reward += (np.abs(self.joints - self.target) < self.distance_threshold).sum() * 0.1
+        if self.timeout: reward += self.reward_collision /2 
         if self.collided:
             self.done = True
             reward += self.reward_collision
