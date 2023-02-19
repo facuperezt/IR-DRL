@@ -68,7 +68,7 @@ env:
         base_position: [0, 0, 1.1]
         base_orientation: [0, 0, 0]
         resting_angles: [90, 90, 90, 90, 0, 0]
-        control_mode: 2
+        control_mode: 1
         xyz_delta: 0.005
         rpy_delta: 0.005
       sensors:
