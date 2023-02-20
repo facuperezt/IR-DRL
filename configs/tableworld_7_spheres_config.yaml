@@ -9,11 +9,11 @@ run:
     save_folder: "./models/weights"  
     save_name: "PPO_SevenSpheres_Velocity"
     recurrent: False
-    TD3: True
+    TD3: False
     ppo_steps: 1024
     gradient_steps: -1  
     batch_size: 4096
-    gamma: 0.99321012399
+    gamma: 0.989
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
       use: False
