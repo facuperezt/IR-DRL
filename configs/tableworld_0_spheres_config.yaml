@@ -7,7 +7,7 @@ run:
     timesteps: 50000000 
     save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_ZERO_SPHERES"
+    save_name: "PPO_ZERO_SPHERES_CM_2"
     recurrent: False
     TD3: False
     ppo_steps: 128
@@ -68,7 +68,7 @@ env:
         base_position: [0, 0, 1.1]
         base_orientation: [0, 0, 0]
         resting_angles: [90, 90, 90, 90, 0, 0]
-        control_mode: 1
+        control_mode: 2
         xyz_delta: 0.005
         rpy_delta: 0.005
       sensors:
@@ -76,6 +76,7 @@ env:
           config:
             name: "ocr"
             max_obstacles: 0
+            add_to_observation_space: False
       goal:
         type: "JointsCollision"
         config:

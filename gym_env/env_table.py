@@ -178,17 +178,20 @@ class ModularDRLTableEnv(gym.Env):
             if goal.add_to_observation_space:
                 goal_observation_space_dict = {**goal_observation_space_dict, **goal.get_observation_space_element()}
 
-        observation_space_list = []
-        lows = []
-        highs = []
-        for vals in [*observation_space_dict.values(), *goal_observation_space_dict.values()]:
-            lows.extend(vals.low.flatten())
-            highs.extend(vals.high.flatten())
-        self.observation_space = gym.spaces.Dict({
-            'observation': gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
-            'achieved_goal': gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
-            'desired_goal' : gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
-            })
+        if False:
+            observation_space_list = []
+            lows = []
+            highs = []
+            for vals in [*observation_space_dict.values(), *goal_observation_space_dict.values()]:
+                lows.extend(vals.low.flatten())
+                highs.extend(vals.high.flatten())
+            self.observation_space = gym.spaces.Dict({
+                'observation': gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
+                'achieved_goal': gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
+                'desired_goal' : gym.spaces.Box(low=np.array(lows), high= np.array(highs), shape= (len(lows),)),
+                })
+        else:
+            self.observation_space = gym.spaces.Dict({**observation_space_dict, **goal_observation_space_dict})
 
         # construct action space from robots
         # the action space will be a vector with the length of all robot's control dimensions added up
