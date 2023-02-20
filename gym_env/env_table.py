@@ -178,7 +178,7 @@ class ModularDRLTableEnv(gym.Env):
             if goal.add_to_observation_space:
                 goal_observation_space_dict = {**goal_observation_space_dict, **goal.get_observation_space_element()}
 
-        if False:
+        if True:
             observation_space_list = []
             lows = []
             highs = []
@@ -315,7 +315,7 @@ class ModularDRLTableEnv(gym.Env):
                 goal_obs_dict = {**goal_obs_dict, **goal.get_observation()}
                 desired_goal_obs_dict = {**desired_goal_obs_dict, **goal.get_target_as_obs()}
 
-        if False:
+        if True:
             desired_target = list(desired_goal_obs_dict.values())[0][:-1]
             # no normalizing here, that should be handled by the sensors and goals
             obs_array = np.concatenate([obs.flatten() for obs in [*obs_dict.values(), *goal_obs_dict.values()]])

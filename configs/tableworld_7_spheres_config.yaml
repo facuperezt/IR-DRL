@@ -3,16 +3,16 @@ run:
   load_model: False  
   model_path: ""  
   train:
-    num_envs : 1
+    num_envs : 32
     timesteps: 50000000 
     save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_tableworld_7spheres_shorter_episodes_full_obs_as_goal"
+    save_name: "PPO_SevenSpheres_Velocity"
     recurrent: False
     TD3: True
-    ppo_steps: 256
+    ppo_steps: 1024
     gradient_steps: -1  
-    batch_size: 1024
+    batch_size: 4096
     gamma: 0.99321012399
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
@@ -50,11 +50,11 @@ run:
     display_delay: 0.00416666666 
 
   replay_buffer_kwargs:
-    max_episode_length: 128
+    max_episode_length: 1024
     online_sampling: True
 env:
   display_extra: True
-  max_steps_per_episode: 128  
+  max_steps_per_episode: 1024  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1
   sim_step: 0.00416666666  

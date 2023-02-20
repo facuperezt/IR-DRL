@@ -3,11 +3,11 @@ run:
   load_model: False  
   model_path: ""  
   train:
-    num_envs : 32
+    num_envs : 1
     timesteps: 50000000 
-    save_freq : 50000
+    save_freq : 200
     save_folder: "./models/weights"  
-    save_name: "PPO_ZERO_SPHERES_CM_1"
+    save_name: "PPO_tableworld_0spheres_"
     recurrent: False
     TD3: False
     ppo_steps: 128
