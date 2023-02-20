@@ -3,14 +3,14 @@ run:
   load_model: False  
   model_path: ""  
   train:
-    num_envs : 1
+    num_envs : 32
     timesteps: 50000000 
     save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_tableworld_0spheres_joint_pos_control_extReward_gamma_0.98"
+    save_name: "PPO_ZERO_SPHERES"
     recurrent: False
-    TD3: True
-    ppo_steps: 256
+    TD3: False
+    ppo_steps: 128
     gradient_steps: -1  
     batch_size: 1024
     gamma: 0.98

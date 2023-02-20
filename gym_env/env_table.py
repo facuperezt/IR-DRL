@@ -312,16 +312,18 @@ class ModularDRLTableEnv(gym.Env):
                 goal_obs_dict = {**goal_obs_dict, **goal.get_observation()}
                 desired_goal_obs_dict = {**desired_goal_obs_dict, **goal.get_target_as_obs()}
 
-
-        desired_target = list(desired_goal_obs_dict.values())[0][:-1]
-        # no normalizing here, that should be handled by the sensors and goals
-        obs_array = np.concatenate([obs.flatten() for obs in [*obs_dict.values(), *goal_obs_dict.values()]])
-        target_array = np.concatenate([desired_target if key == self.target_key else obs.flatten() for key,obs in [*obs_dict.items(), *desired_goal_obs_dict.items()]])
-        return {
-            'observation' : obs_array,
-            'achieved_goal' : obs_array,
-            'desired_goal' : target_array,
-            }
+        if False:
+            desired_target = list(desired_goal_obs_dict.values())[0][:-1]
+            # no normalizing here, that should be handled by the sensors and goals
+            obs_array = np.concatenate([obs.flatten() for obs in [*obs_dict.values(), *goal_obs_dict.values()]])
+            target_array = np.concatenate([desired_target if key == self.target_key else obs.flatten() for key,obs in [*obs_dict.items(), *desired_goal_obs_dict.items()]])
+            return {
+                'observation' : obs_array,
+                'achieved_goal' : obs_array,
+                'desired_goal' : target_array,
+                }
+        else:
+            return {**obs_dict, **goal_obs_dict}
 
     def step(self, action):
         
