@@ -196,9 +196,9 @@ class JointsCollisionGoal(Goal):
             if success_rate > 0.8 and self.distance_threshold > self.distance_threshold_end:
                 if success_rate == 1 and self.distance_threshold < self.distance_threshold_end * 5: self.robot.world.num_static_obstacles += 1
                 self.distance_threshold -= increment 
-            elif success_rate < 0.2 and self.distance_threshold < self.distance_threshold_start:
+            elif success_rate < 0.1 and self.distance_threshold < self.distance_threshold_start:
                 if success_rate == 0 and self.distance_threshold < self.distance_threshold_increment_end * 5: self.robot.world.num_static_obstacles -= 1
-                self.distance_threshold += increment  # upwards movement should be slower
+                self.distance_threshold += increment/10  # upwards movement should be slower
             if self.distance_threshold > self.distance_threshold_start:
                 self.distance_threshold = self.distance_threshold_start
             if self.distance_threshold < self.distance_threshold_end:
