@@ -7,7 +7,7 @@ run:
     timesteps: 50000000 
     save_freq : 50000
     save_folder: "./models/weights"  
-    save_name: "PPO_SevenSpheres_Velocity"
+    save_name: "PPO_SevenSpheres_VelocityV2"
     recurrent: False
     TD3: False
     ppo_steps: 1024
