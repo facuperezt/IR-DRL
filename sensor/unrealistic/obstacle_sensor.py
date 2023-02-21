@@ -27,7 +27,7 @@ class ObstacleCenterRadius(Sensor):
     def update(self, step):
         for i, sphere in enumerate(self.robot.world.obstacle_objects):
             tmp = [*sphere.position, sphere.radius]
-            if self.features_per_sphere > 4: tmp.append([*sphere.velocity])
+            if self.features_per_sphere > 4: tmp.extend([*sphere.velocity])
             self.obstacles_state[i] = np.array(tmp)
 
     def reset(self):
