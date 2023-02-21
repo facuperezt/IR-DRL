@@ -76,7 +76,7 @@ env:
           config:
             name: "ocr"
             max_obstacles: 7
-            use_velocities: False
+            use_velocities: True
       goal:
         type: "JointsCollision"
         config:
@@ -89,7 +89,7 @@ env:
           dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
-          dist_threshold_overwrite: 0.05
+          dist_threshold_overwrite: "None"
 
   world:
     type: "Table"
