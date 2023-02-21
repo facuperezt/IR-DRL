@@ -115,6 +115,7 @@ if __name__ == "__main__":
             offset = 0
             while not done:
                 sleep(run_config["display_delay"])
+                obs['obstacleradius_ocr'] = np.zeros_like(obs['obstacleradius_ocr'])
                 act, state = model.predict(obs, state=(state if run_config["recurrent"] else None), episode_start=episode_start)
                 obs, reward, done, info = env.step(act)
                 episode_starts = done

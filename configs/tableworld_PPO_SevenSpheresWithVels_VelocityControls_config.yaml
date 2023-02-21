@@ -1,0 +1,105 @@
+# config that builds the env as Yifan had it
+run:
+  load_model: False  
+  model_path: ""  
+  train:
+    num_envs : 32
+    timesteps: 50000000 
+    save_freq : 31250
+    save_folder: "./models/weights"  
+    save_name: "PPO_SevenSpheresWithVels_VelocityControl"
+    recurrent: False
+    TD3: False
+    ppo_steps: 1024
+    gradient_steps: -1  
+    batch_size: 4096
+    gamma: 0.989
+    tensorboard_folder: "./models/tensorboard_logs"
+    custom_policy:
+      use: False
+      args:
+        features_dim: 100
+      activation_function: "ReLU"  
+      layers:
+        - value_function:
+          - 128
+          - 64
+          - 32
+          - 16
+        - policy_function:
+          - 128
+          - 64
+          - 32
+          - 16   
+      lstm:
+        lstm_hidden_size: 512
+        n_lstm_layers: 2
+        shared_lstm: False
+        enable_critic_lstm: True
+
+  eval:
+    show_world_aux: True
+    show_goal_aux: True
+    show_sensor_aux: True
+    pybullet_recorder:
+      use: False
+      save_path: "demo"
+      scale: 1
+    max_episodes: -1  
+    logging: 1
+    display_delay: 0.00416666666 
+
+  replay_buffer_kwargs:
+    max_episode_length: 1024
+    online_sampling: True
+env:
+  display_extra: True
+  max_steps_per_episode: 1024  
+  use_physics_sim: True  # strictly speaking the original code had this at False
+  physics_steps_per_env_step: 1
+  sim_step: 0.00416666666  
+  stat_buffer_size: 25  
+  normalize_observations: False
+  normalize_rewards: False
+  robots:
+    - type: "UR5_P2P" 
+      config:
+        name: "ur5_1"
+        base_position: [0, 0, 1.1]
+        base_orientation: [0, 0, 0]
+        resting_angles: [90, 90, 90, 90, 0, 0]
+        control_mode: 2
+        xyz_delta: 0.005
+        rpy_delta: 0.005
+      sensors:
+        - type: "ObstacleCenterRadius"
+          config:
+            name: "ocr"
+            max_obstacles: 7
+            use_velocities: False
+      goal:
+        type: "JointsCollision"
+        config:
+          add_to_logging: True
+          continue_after_success: True
+          reward_success: 60
+          reward_collision: -30
+          reward_distance_mult: -0.005
+          dist_threshold_start: 1
+          dist_threshold_end : 0.01
+          dist_threshold_increment_start: 0.01
+          dist_threshold_increment_end: 0.001
+          dist_threshold_overwrite: 0.05
+
+  world:
+    type: "Table"
+    config:
+      workspace_boundaries: [-1.5, 1.5, -1.2, 1.2, 1.1, 2]
+      fixed_nr_obst: True
+      num_static_obstacles: 3
+      num_moving_obstacles: 4
+      box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
+      sphere_measurements: [0.05, 0.2]
+      moving_obstacles_vels: [0.5, 1.5]
+      moving_obstacles_directions: []
+      moving_obstacles_trajectory_length: [0.05, 0.75]

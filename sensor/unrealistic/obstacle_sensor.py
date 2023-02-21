@@ -15,20 +15,23 @@ class ObstacleCenterRadius(Sensor):
     Assumes that objects are not created/destroyed during experiment
     """
 
-    def __init__(self, robot: Robot, max_obstacles: int, name : str, add_to_observation_space : bool = True, add_to_logging : bool = False, update_steps : int = 1, **kwargs):
+    def __init__(self, robot: Robot, max_obstacles: int, use_velocities : bool, name : str, add_to_observation_space : bool = True, add_to_logging : bool = False, update_steps : int = 1, **kwargs):
         self.robot = robot
         self.name = name
         self.out_name = 'obstacleradius_' + name
         self.max_obs = max_obstacles
-        self.obstacles_state = np.zeros((max_obstacles, 4))
+        self.features_per_sphere = 7 if use_velocities else 4
+        self.obstacles_state = np.zeros((max_obstacles, self.features_per_sphere))
         super().__init__(add_to_observation_space= add_to_observation_space, add_to_logging= add_to_logging, update_steps= update_steps, **kwargs)
 
     def update(self, step):
         for i, sphere in enumerate(self.robot.world.obstacle_objects):
-            self.obstacles_state[i] = np.array([*sphere.position, sphere.radius])
+            tmp = [*sphere.position, sphere.radius]
+            if self.features_per_sphere > 4: tmp.append([*sphere.velocity])
+            self.obstacles_state[i] = np.array(tmp)
 
     def reset(self):
-        self.obstacles_state = np.zeros((self.max_obs, 4))
+        self.obstacles_state = np.zeros((self.max_obs, self.features_per_sphere))
 
     def get_observation(self) -> dict:
         return {self.out_name : self.obstacles_state}

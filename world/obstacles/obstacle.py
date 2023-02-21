@@ -22,6 +22,7 @@ class Obstacle(ABC):
         # for two or more elements the obstacle will loop between the two or more points
         self.trajectory = [np.array(ele) for ele in trajectory]
         self.move_step = move_step  # this is the distance the obstlace moves within one env sim step
+        self.velocity = [0,0,0]
         self.trajectory_idx = -1
         self.closeness_threshold = 1e-3  # to determine if two positions are the same
 
@@ -50,6 +51,7 @@ class Obstacle(ABC):
             else:
                 move_step = self.move_step if diff_norm > self.move_step else diff_norm # ensures that we don't jump over the target destination
                 step = diff * (move_step / diff_norm)
+                self.velocity = step
                 self.position = self.position + step
                 pyb.resetBasePositionAndOrientation(self.object_id, self.position, self.rotation)
         else:  # looping trajectory
@@ -63,7 +65,8 @@ class Obstacle(ABC):
                     self.trajectory_idx = -1
             else:
                 move_step = self.move_step if diff_norm > self.move_step else diff_norm # ensures that we don't jump over the target destination
-                step = diff * (move_step / diff_norm)  
+                step = diff * (move_step / diff_norm)
+                self.velocity = step  
                 self.position = self.position + step
                 pyb.resetBasePositionAndOrientation(self.object_id, self.position, self.rotation)
 
