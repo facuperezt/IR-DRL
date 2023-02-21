@@ -89,6 +89,8 @@ class JointsCollisionGoal(Goal):
 
         self.goal_vis = None
 
+        self._steps_within_range = 0
+
     def get_observation_space_element(self) -> dict:
         if self.add_to_observation_space:
             ret = dict()
@@ -155,21 +157,22 @@ class JointsCollisionGoal(Goal):
 
         self.is_success = False
         reward += (np.abs(self.joints - self.target) < self.distance_threshold).sum() * 0.1
-        if self.timeout: 
-            self.done = True
-            reward += self.reward_collision /2 
+
         if self.collided:
             self.done = True
             reward += self.reward_collision
         elif (np.abs(self.joints - self.target) < self.distance_threshold).all():
-            self.done = True
-            self.is_success = True
-            reward += self.reward_success
+            self._steps_within_range += 1
+            if self._steps_within_range >= 5:
+                self.done = True
+                self.is_success = True
+            reward += self._steps_within_range * self.reward_success / 5
         elif step > self.max_steps:
             self.done = True
             self.timeout = True
-            # reward += self.reward_collision / 2
+            reward += self.reward_collision / 2
         else:
+            self._steps_within_range = 0
             self.done = False
             reward += self.reward_distance_mult * self.distance
         
@@ -232,6 +235,7 @@ class JointsCollisionGoal(Goal):
         logging_dict["shaking_" + self.robot.name] = self.shaking
         logging_dict["reward_" + self.robot.name] = self.reward_value
         logging_dict["distance_" + self.robot.name] = self.distance
+        logging_dict["in_range_" + self.robot.name] = self._steps_within_range
         logging_dict["distance_threshold_" + self.robot.name] = self.distance_threshold
 
         return logging_dict
