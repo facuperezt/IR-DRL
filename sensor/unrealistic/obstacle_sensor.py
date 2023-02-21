@@ -42,7 +42,7 @@ class ObstacleCenterRadius(Sensor):
         d[self.out_name] = spaces.Box(
             low = min(w.x_min, w.y_min, w.z_min, w.sphere_r_min),
             high= max(w.x_max, w.y_max, w.z_max, w.sphere_r_max),
-            shape= (self.max_obs, 4), # each row consists of [x, y, z, r] with xyz being the center of the sphere and r the radius
+            shape= (self.max_obs, self.features_per_sphere), # each row consists of [x, y, z, r] with xyz being the center of the sphere and r the radius
         )
         return d
 
