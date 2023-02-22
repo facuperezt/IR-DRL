@@ -70,31 +70,78 @@ class CustomizableCNN(BaseFeaturesExtractor):
         
         return out
 
+class ChangeDims(nn.Module):
+    new_dims = []
+    out_shape = []
+
+    def __init__(self):
+        super().__init__()
+
+class PermuteDims(ChangeDims):
+    def __init__(self, *order_dims):
+        super().__init__()
+        ChangeDims.new_dims = list(order_dims)
+
+    def forward(self, x):
+        ChangeDims.new_dims = ChangeDims.new_dims if len(x.shape) == len(ChangeDims.new_dims) else [0] + [d+1 for d in ChangeDims.new_dims]
+        out = th.permute(x, ChangeDims.new_dims)
+        ChangeDims.out_shape = list(out.shape)
+        return out.reshape(-1, out.shape[-2], out.shape[-1])
+
+class UnpermuteDims(ChangeDims):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x):
+        shape = ChangeDims.out_shape.copy()
+        shape[-2] = x.shape[-2]
+        return th.permute(th.reshape(x, shape), ChangeDims.new_dims)
+
+class SqueezeDims(nn.Module):
+
+    def __init__(self, batched = False):
+        super().__init__()
+        self.batched = batched
+
+    def forward(self, x):
+        out = th.squeeze(x)
+        if self.batched and len(out.shape) == 2:
+            out = out[None]
+        return out
+
 class ObstacleRadiusExtractor(BaseFeaturesExtractor):
 
-    def __init__(self, observation_space: gym.spaces.Box, linear_sizes = None, cnn_sizes= None, features_dim: int = None):
+    def __init__(self, observation_space: gym.spaces.Box, linear_sizes = None, cnn_sizes : list = None, features_dim: int = None):
         if linear_sizes is None:
-            linear_sizes = [int(observation_space.shape[0] * observation_space.shape[1]/2), int(observation_space.shape[0] * observation_space.shape[1]/4)]
+            linear_sizes = [int(observation_space.shape[-2] * observation_space.shape[-1]/2), int(observation_space.shape[-2] * observation_space.shape[-1]/4)]
         if features_dim is None:
-            features_dim = int(observation_space.shape[0] * observation_space.shape[1] / 8)
-        if cnn_sizes is None:
-            cnn_sizes = [2, 1]
+            features_dim = int(observation_space.shape[-2] * observation_space.shape[-1] / 8)
+        if len(observation_space.shape) == 3:
+            if cnn_sizes is None:
+                cnn_sizes = [observation_space.shape[-3] ,observation_space.shape[-3] // 2, 1]
+            else:
+                if cnn_sizes[0] != observation_space.shape[-3]: cnn_sizes.insert(0, observation_space.shape[-3])
+                if cnn_sizes[-1]!= 1: cnn_sizes.append(1)
+        else:
+            cnn_sizes = []
+            self.cnn = lambda x: x
 
         super().__init__(observation_space, features_dim)
+        if len(cnn_sizes) > 1:
+            cnn_layers = []
+            for i in range(len(cnn_sizes) - 1):
+                cnn_layers.append(PermuteDims(1, 0, 2))
+                cnn_layers.append(nn.Conv1d(cnn_sizes[i], cnn_sizes[i+1], 1))
+                cnn_layers.append(UnpermuteDims()) # UnpermuteDims gets the order from PermuteDims
+                cnn_layers.append(nn.LeakyReLU())
 
-        # cnn_channel_sizes = [observation_space.shape[0], *cnn_sizes]
-        # cnn_layers = []
-        # for i in range(len(cnn_channel_sizes) - 1):
-        #     cnn_layers.append(nn.Conv1d(cnn_channel_sizes[i], cnn_channel_sizes[i+1], 1))
-        #     cnn_layers.append(nn.LeakyReLU())
+            self.cnn = nn.Sequential(*cnn_layers, SqueezeDims())
 
-        # self.cnn = nn.Sequential(*cnn_layers, nn.Flatten())
+            # Compute shape by doing one forward pass
+            with th.no_grad():
+                n_flatten = self.cnn(th.as_tensor(observation_space.sample()).float()).shape[1]
 
-        # # Compute shape by doing one forward pass
-        # with th.no_grad():
-        #     n_flatten = self.cnn(th.as_tensor(observation_space.sample()).float()).shape[1]
-
-        linear_layer_sizes = [observation_space.shape[0] * observation_space.shape[1], *linear_sizes, features_dim]
+        linear_layer_sizes = [observation_space.shape[-2] * observation_space.shape[-1], *linear_sizes, features_dim]
 
         linear_layers = [nn.Flatten()]
         for i in range(len(linear_layer_sizes)-1):
@@ -102,9 +149,10 @@ class ObstacleRadiusExtractor(BaseFeaturesExtractor):
             linear_layers.append(nn.LeakyReLU())
 
         self.linear = nn.Sequential(*linear_layers)
+        self.cnn[-1].batched = True
 
     def forward(self, observations: th.Tensor) -> th.Tensor:
-        return self.linear(observations)
+        return self.linear(self.cnn(observations))
 
 
 class CustomizableFeaturesExtractor(BaseFeaturesExtractor):

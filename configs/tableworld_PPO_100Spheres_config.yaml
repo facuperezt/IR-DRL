@@ -3,11 +3,11 @@ run:
   load_model: False  
   model_path: ""  
   train:
-    num_envs : 32
+    num_envs : 4
     timesteps: 50000000 
     save_freq : 31250
     save_folder: "./models/weights"  
-    save_name: "PPO_100Spheres"
+    save_name: "PPO_100Spheres_debug"
     recurrent: False
     TD3: False
     ppo_steps: 1024
@@ -80,7 +80,8 @@ env:
           config:
             name: "ocr"
             max_obstacles: 50
-            use_velocities: True
+            use_velocities: False
+            n_stacked_frames: 4
       goal:
         type: "JointsCollision"
         config:
