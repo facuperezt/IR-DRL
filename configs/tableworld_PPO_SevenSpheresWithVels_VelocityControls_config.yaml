@@ -18,7 +18,11 @@ run:
     custom_policy:
       use: False
       args:
-        features_dim: 100
+        linear_sizes:
+          - 256
+          - 128 
+          - 64
+        features_dim: 50
       activation_function: "ReLU"  
       layers:
         - value_function:
@@ -75,7 +79,7 @@ env:
         - type: "ObstacleCenterRadius"
           config:
             name: "ocr"
-            max_obstacles: 7
+            max_obstacles: 50
             use_velocities: True
       goal:
         type: "JointsCollision"

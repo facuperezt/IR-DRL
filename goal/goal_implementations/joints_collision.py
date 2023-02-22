@@ -26,7 +26,8 @@ class JointsCollisionGoal(Goal):
                        dist_threshold_end=1e-2,
                        dist_threshold_increment_start=1e-2,
                        dist_threshold_increment_end=1e-3,
-                       dist_threshold_overwrite:float=None):
+                       dist_threshold_overwrite:float=None,
+                       dynamic_obstacle_allocation:bool = False):
 
         super().__init__(robot, normalize_rewards, normalize_observations, train, True, add_to_logging, max_steps, continue_after_success)
 
@@ -90,6 +91,8 @@ class JointsCollisionGoal(Goal):
         self.goal_vis = None
 
         self._steps_within_range = 0
+
+        self.dynamic_obstacle_allocation = dynamic_obstacle_allocation
 
     def get_observation_space_element(self) -> dict:
         if self.add_to_observation_space:
@@ -198,11 +201,11 @@ class JointsCollisionGoal(Goal):
             # calculate increment
             ratio_start_end = (self.distance_threshold - self.distance_threshold_end) / (self.distance_threshold_start - self.distance_threshold_end)
             increment = (self.distance_threshold_increment_start - self.distance_threshold_increment_end) * ratio_start_end + self.distance_threshold_increment_end
-            if success_rate > 0.8 and self.distance_threshold > self.distance_threshold_end:
-                # if success_rate == 1 and self.distance_threshold < self.distance_threshold_end * 5: self.robot.world.num_static_obstacles += 1
+            if success_rate > 0.9 and self.distance_threshold > self.distance_threshold_end:
+                if self.dynamic_obstacle_allocation and success_rate > 0.95 and self.distance_threshold < self.distance_threshold_end * 2: self.robot.world.num_static_obstacles += 1
                 self.distance_threshold -= increment 
             elif success_rate < 0.1 and self.distance_threshold < self.distance_threshold_start:
-                # if success_rate == 0 and self.distance_threshold < self.distance_threshold_increment_end * 5: self.robot.world.num_static_obstacles -= 1
+                if self.dynamic_obstacle_allocation and success_rate < 0.05 and self.distance_threshold < self.distance_threshold_start / 2: self.robot.world.num_static_obstacles -= 1
                 self.distance_threshold += increment/10  # upwards movement should be slower
             if self.distance_threshold > self.distance_threshold_start:
                 self.distance_threshold = self.distance_threshold_start
