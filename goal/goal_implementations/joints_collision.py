@@ -161,6 +161,8 @@ class JointsCollisionGoal(Goal):
         self.is_success = False
         reward -= (np.abs(self.joints - self.target) > self.distance_threshold).sum() * 0.1
 
+        reward -= self.distance_threshold/10
+
         if self.collided:
             self.done = True
             reward += self.reward_collision
