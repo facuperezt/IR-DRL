@@ -3,11 +3,11 @@ run:
   load_model: False  
   model_path: ""  
   train:
-    num_envs : 32
+    num_envs : 16
     timesteps: 50000000 
     save_freq : 31250
     save_folder: "./models/weights"  
-    save_name: "PPO_100Spheres_randomizedPlace_finalReward"
+    save_name: "PPO_100Spheres_no_jitter"
     recurrent: False
     TD3: False
     ppo_steps: 1024
@@ -87,8 +87,8 @@ env:
         config:
           add_to_logging: True
           continue_after_success: True
-          reward_success: 100
-          reward_collision: -70
+          reward_success: 150
+          reward_collision: -200
           reward_distance_mult: -0.005
           dist_threshold_start: 1.5
           dist_threshold_end : 0.01
