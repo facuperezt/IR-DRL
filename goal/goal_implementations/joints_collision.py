@@ -149,8 +149,8 @@ class JointsCollisionGoal(Goal):
         if len(self.past_joints_angles) >= 10:
             for i in range(1,len(self.past_joints_angles) - 1):
                 shaking += self._compare_pose_similarity(i)
+            reward -= shaking / (len(self.past_joints_angles))
         self.shaking = shaking
-        reward -= shaking / (len(self.past_joints_angles) - 2)
         
         reward -= np.sum(np.array(action)**2 / (len(action)/2))
 
