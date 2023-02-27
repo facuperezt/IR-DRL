@@ -13,7 +13,7 @@ run:
     ppo_steps: 1024
     gradient_steps: -1  
     batch_size: 4096
-    gamma: 0.9898
+    gamma: 0.98
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
       use: "CustomFeaturesExtractor"
@@ -87,11 +87,11 @@ env:
         config:
           add_to_logging: True
           continue_after_success: True
-          reward_success: 300
-          reward_collision: -150
-          reward_distance_mult: -0.05
-          dist_threshold_start: 1
-          dist_threshold_end : 0.005
+          reward_success: 3
+          reward_collision: -1.5
+          reward_distance_mult: -0.0005
+          dist_threshold_start: 1.5
+          dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
           dist_threshold_overwrite: "None"
