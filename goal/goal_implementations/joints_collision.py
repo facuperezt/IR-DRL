@@ -172,7 +172,7 @@ class JointsCollisionGoal(Goal):
                 self.done = True
                 self.is_success = True
             reward += self._steps_within_range * self.reward_success / 5
-        elif step > self.max_steps or self._steps_within_range > 0:
+        elif step > self.max_steps or self._steps_within_range > 1:
             self.done = True
             self.timeout = True
             reward += self.reward_collision / 2
