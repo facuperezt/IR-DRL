@@ -149,19 +149,19 @@ class JointsCollisionGoal(Goal):
         if len(self.past_joints_angles) >= 10:
             for i in range(1,len(self.past_joints_angles) - 1):
                 shaking += self._compare_pose_similarity(i)
-            reward -= shaking / (len(self.past_joints_angles))
+            # reward -= shaking / (len(self.past_joints_angles))
         self.shaking = shaking
         
         reward -= np.sum(np.array(action)**2 / (len(action)/2))
 
-        if len(self.past_joints_angles) >= 2:
-            reward += 0 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else -1
+        # if len(self.past_joints_angles) >= 2:
+        #     reward += 0 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else -1
 
 
         self.is_success = False
-        reward -= (np.abs(self.joints - self.target) > self.distance_threshold).sum() * 0.1
+        # reward -= (np.abs(self.joints - self.target) > self.distance_threshold).sum() * 0.1
 
-        reward -= self.distance_threshold/10
+        # reward -= self.distance_threshold/10
 
         if self.collided:
             self.done = True
@@ -171,8 +171,7 @@ class JointsCollisionGoal(Goal):
             if self._steps_within_range >= 5:
                 self.done = True
                 self.is_success = True
-                reward += self._steps_within_range * self.reward_success
-            reward += self._steps_within_range * self.reward_success / 10
+            reward += self._steps_within_range * self.reward_success / 5
         elif step > self.max_steps:
             self.done = True
             self.timeout = True
