@@ -1,6 +1,6 @@
 # config that builds the env as Yifan had it
 run:
-  load_model: False  
+  load_model: True  
   model_path: ""  
   train:
     num_envs : 32
@@ -79,7 +79,7 @@ env:
         - type: "ObstacleCenterRadius"
           config:
             name: "ocr"
-            max_obstacles: 50
+            max_obstacles: 7
             use_velocities: True
       goal:
         type: "JointsCollision"

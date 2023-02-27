@@ -3,7 +3,7 @@ run:
   load_model: False  
   model_path: ""  
   train:
-    num_envs : 16
+    num_envs : 32
     timesteps: 50000000 
     save_freq : 31250
     save_folder: "./models/weights"  
