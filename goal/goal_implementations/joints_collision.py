@@ -196,7 +196,7 @@ class JointsCollisionGoal(Goal):
             reward += self.reward_collision
         elif (np.abs(self.joints - self.target) < self.distance_threshold).all():
             self._steps_within_range += 1
-            if self._steps_within_range >= 5:
+            if self._steps_within_range >= 15:
                 self.done = True
                 self.is_success = True
             reward += self._steps_within_range * self.reward_success / 5
@@ -205,8 +205,7 @@ class JointsCollisionGoal(Goal):
             self.timeout = True
             reward += self.reward_collision / 2
         else:
-            reward -= self._steps_within_range * self.reward_success / 5
-            self._steps_within_range = 0
+            reward -= self._steps_within_range * self.reward_success / 10
             self.done = False
             reward += self.reward_distance_mult * self.distance
         
