@@ -7,7 +7,7 @@ run:
     timesteps: 50000000 
     save_freq : 31250
     save_folder: "./models/weights"  
-    save_name: "PPO_100Spheres_proximityWarning_15AtGoal_v4"
+    save_name: "PPO_100Spheres_proximityWarning_15AtGoal_v3"
     recurrent: False
     TD3: False
     ppo_steps: 1024
@@ -89,7 +89,7 @@ env:
           add_to_logging: True
           continue_after_success: True
           reward_success: 500
-          reward_collision: -50
+          reward_collision: -100
           reward_distance_mult: -0.005
           dist_threshold_start: 1.5
           dist_threshold_end : 0.01
