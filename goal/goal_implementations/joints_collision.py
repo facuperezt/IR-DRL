@@ -184,7 +184,7 @@ class JointsCollisionGoal(Goal):
             penalty = self.closeness_penalty(min_dist, importance) * self.reward_collision / 10
             if penalty > max_penalty:
                 max_penalty = penalty
-        reward -= penalty
+        reward -= max_penalty
 
         # if len(self.past_joints_angles) >= 2:
         #     reward += 0 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else -1
