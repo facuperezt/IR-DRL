@@ -68,6 +68,7 @@ class ModularDRLTableEnv(gym.Env):
         self.timeout_stat = [False, False, False, False]
         self.collision_stat = [False, False, False, False]
         self.cumulated_rewards_stat = [0]
+        self.average_steps_stat = [512, 512, 512, 512]
         self.goal_metrics = []
         self.reward = 0
         self.reward_cumulative = 0
@@ -425,6 +426,9 @@ class ModularDRLTableEnv(gym.Env):
             self.cumulated_rewards_stat.append(self.reward_cumulative)
             if len(self.cumulated_rewards_stat) > self.stat_buffer_size:
                 self.cumulated_rewards_stat.pop(0)
+            self.average_steps_stat.append(self.steps_current_episode)
+            if len(self.average_steps_stat) > self.stat_buffer_size:
+                self.average_steps_stat.pop(0)
 
         if self.logging == 0:
             # no logging
@@ -445,6 +449,7 @@ class ModularDRLTableEnv(gym.Env):
                     "timeout_rate": np.average(self.timeout_stat),
                     "collision_rate": np.average(self.collision_stat),
                     "cumulated_rewards": np.average(self.cumulated_rewards_stat),
+                    "average_steps": np.average(self.average_steps_stat),
                     "sim_time": self.sim_time,
                     "cpu_time_steps": self.cpu_time,
                     "cpu_time_full": self.cpu_time + self.cpu_epoch - self.cpu_reset_epoch}

@@ -4,6 +4,8 @@ import numpy as np
 import pybullet as pyb
 import pybullet_data as pyb_d
 from random import choice, shuffle
+import matplotlib.pyplot as plt
+import matplotlib.colors
 
 __all__ = [
     'TableWorld'
@@ -65,8 +67,46 @@ class TableWorld(World):
         # table
         self.ground_and_table_id.append(pyb.loadURDF(pyb_d.getDataPath()+"/table/table.urdf", useFixedBase=True, globalScaling=1.75))
 
+    def LinePlaneCollision(self, planeNormal, planePoint, rayDirection, rayPoint, epsilon=1e-6):
+
+        ndotu = planeNormal.dot(rayDirection)
+        if abs(ndotu) < epsilon:
+            raise RuntimeError("no intersection or line is within plane")
+
+        w = rayPoint - planePoint
+        si = -planeNormal.dot(w) / ndotu
+        Psi = w + si * rayDirection + planePoint
+        return Psi
+
+    def valid_sphere_position(self, sphere : Sphere, points : list = None, safety_radii : list = None):
+        if points is None:
+            points = [[0,0,0.5]]
+        if safety_radii is None:
+            safety_radii = [[0.2]]
+        assert len(points) == len(safety_radii), 'Each point needs a safety radius.'
+        plane_foo = lambda vec, off: lambda xyz: np.dot(vec, xyz) + off
+        for point, rp in zip(points, safety_radii):
+            p0 = np.asarray(point)
+            rp = np.asarray(rp)
+            if np.linalg.norm(sphere.position - p0) < rp + sphere.radius: return False
+            if len(sphere.trajectory) > 0:
+                if any([np.linalg.norm(trajectory_stop - point) < rp + sphere.radius for trajectory_stop in sphere.trajectory[1:]]): return False
+                for p1, p2 in zip(sphere.trajectory[:-1], sphere.trajectory[1:]):
+                    p1, p2 = np.asarray(p1), np.asarray(p2)
+                    vec = p2-p1
+                    closest_point = self.LinePlaneCollision(vec, p0, vec, p2)
+                    if np.linalg.norm(p0 - closest_point) < rp + sphere.radius: return False
+        return True
+
+
     def build(self):
         random_object_amount = np.random.rand() if not self.fixed_nr_obst else 1
+        cvals  = [0., 0.15,  1]
+        colors = ["red", "salmon", "dimgray"]
+
+        norm=plt.Normalize(min(cvals),max(cvals))
+        tuples = list(zip(map(norm,cvals), colors))
+        cmap = matplotlib.colors.LinearSegmentedColormap.from_list("", tuples)
         # add the moving obstacles
         while len(self.obstacle_objects)  < int(random_object_amount * (self.num_moving_obstacles + self.num_static_obstacles)):
             
@@ -90,11 +130,12 @@ class TableWorld(World):
             else:
                 move_step = 0
                 trajectory = []
-                      
             # sphere
             # generate random size
             radius = np.random.uniform(low=self.sphere_r_min, high=self.sphere_r_max)
-            sphere = Sphere(position, [0, 0, 0, 1], trajectory, move_step, radius)
+            importance = np.random.uniform(0.05, 1)
+            sphere = Sphere(position, [0, 0, 0, 1], trajectory, move_step, radius, importance= importance, color=cmap(importance))
+            if not self.valid_sphere_position(sphere,): continue
             self.obstacle_objects.append(sphere)
             self.objects_ids.append(sphere.build())
 

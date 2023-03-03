@@ -5,11 +5,12 @@ from typing import Union
 
 class Sphere(Obstacle):
 
-    def __init__(self, position: Union[list, np.ndarray], rotation: Union[list, np.ndarray], trajectory: list, move_step: float, radius: float, color: list=[0.75,0.75,0.75,1]) -> None:
+    def __init__(self, position: Union[list, np.ndarray], rotation: Union[list, np.ndarray], trajectory: list, move_step: float, radius: float, color: list=[0.75,0.75,0.75,1], importance: float = 1.0) -> None:
         super().__init__(position, rotation, trajectory, move_step)
 
         self.radius = radius
         self.color = color
+        self.importance = importance
 
     def build(self) -> int:
         self.object_id = pyb.createMultiBody(baseMass=0,

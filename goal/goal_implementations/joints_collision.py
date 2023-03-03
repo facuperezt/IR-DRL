@@ -94,6 +94,8 @@ class JointsCollisionGoal(Goal):
 
         self.dynamic_obstacle_allocation = dynamic_obstacle_allocation
 
+        self.obstacles_info = [] # gets filled by the obstacle sensor with minimum distance to robot PER OBJECT
+
     def get_observation_space_element(self) -> dict:
         if self.add_to_observation_space:
             ret = dict()
@@ -138,6 +140,29 @@ class JointsCollisionGoal(Goal):
     def _compare_pose_similarity(self, i):
         return int(np.linalg.norm(self.past_joints_angles[i+1]-self.past_joints_angles[i]) < np.linalg.norm(self.past_joints_angles[i+1] - self.past_joints_angles[i-1]))
 
+    def expReward(self, x, u= 1.5, b= -1.875, a= 42, e= 0.8):
+        """
+        u = 1.5
+        b = -1.875
+        e = 0.8
+        a = [6, 200]
+        """
+        return u/(np.exp(-a*x) + e) + b
+    
+    def closeness_penalty(self, min_dist, importance):
+        """
+        Start penalizing the model for just being closed to objects, based on their importance.
+        Importance of 0 means that an object is very important, and the robot doesn't even have to come CLOSE to it. Will start penalizing at about 0.8m distance.
+        Importance of 1 means that an object can be almost grazed without becoming a penalty.
+
+        Returns:
+        float in interval [-1.04, 0] exponentatilly correlated to the importance
+        """
+        assert 1 >= importance and importance >= 0
+        # assuming importance [0,1]
+        a = np.clip(200*importance, a_min= 6, a_max= 200)
+        return self.expReward(min_dist, a= a)
+
     def reward(self, step, action):
         
         reward = 0
@@ -146,13 +171,16 @@ class JointsCollisionGoal(Goal):
         self.collided = self.robot.world.collision
 
         shaking = 0
-        if len(self.past_joints_angles) >= 10:
-            for i in range(1,len(self.past_joints_angles) - 1):
-                shaking += self._compare_pose_similarity(i)
+        # if len(self.past_joints_angles) >= 10:
+        #     for i in range(1,len(self.past_joints_angles) - 1):
+        #         shaking += self._compare_pose_similarity(i)
             # reward -= shaking / (len(self.past_joints_angles))
         self.shaking = shaking
         
-        reward -= np.sum(np.array(action)**2 / (len(action)/2))
+        reward -= np.sum(np.array(action)**2 / (len(action))) / 10
+
+        for min_dist, importance in zip(*self.obstacles_info):
+            reward -= self.closeness_penalty(min_dist, importance) * self.reward_collision / 10
 
         # if len(self.past_joints_angles) >= 2:
         #     reward += 0 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else -1

@@ -1,13 +1,13 @@
 # config that builds the env as Yifan had it
 run:
-  load_model: True  
-  model_path: "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_33000000_steps.zip"  
+  load_model: False
+  model_path: "" 
   train:
-    num_envs : 16
+    num_envs : 32
     timesteps: 50000000 
     save_freq : 31250
     save_folder: "./models/weights"  
-    save_name: "PPO_100Spheres_randomizedPlace_finalReward"
+    save_name: "PPO_100Spheres_proximityWarning"
     recurrent: False
     TD3: False
     ppo_steps: 1024
@@ -57,7 +57,7 @@ run:
     max_episode_length: 1024
     online_sampling: True
 env:
-  display_extra: True
+  display_extra: False
   max_steps_per_episode: 1024  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1
@@ -81,30 +81,30 @@ env:
             name: "ocr"
             max_obstacles: 50
             use_velocities: False
-            use_importance: False
+            use_importance: True
             n_stacked_frames: 4
       goal:
         type: "JointsCollision"
         config:
           add_to_logging: True
           continue_after_success: True
-          reward_success: 150
+          reward_success: 500
           reward_collision: -200
           reward_distance_mult: -0.005
           dist_threshold_start: 1.5
           dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
-          dist_threshold_overwrite: 0.03
+          dist_threshold_overwrite: "None"
           dynamic_obstacle_allocation: True
 
   world:
     type: "Table"
     config:
       workspace_boundaries: [-1.5, 1.5, -1.2, 1.2, 1.1, 2]
-      fixed_nr_obst: True
-      num_static_obstacles: 3
-      num_moving_obstacles: 4
+      fixed_nr_obst: False
+      num_static_obstacles: 10
+      num_moving_obstacles: 15
       box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
       sphere_measurements: [0.05, 0.2]
       moving_obstacles_vels: [0.5, 1.5]
