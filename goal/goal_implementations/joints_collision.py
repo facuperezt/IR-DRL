@@ -5,6 +5,8 @@ from gym.spaces import Box
 import pybullet as pyb
 from functools import reduce
 from sensor import JointsSensor
+from stable_baselines3 import PPO
+from stable_baselines3.common.utils import obs_as_tensor
 
 __all__ = [
     'JointsCollisionGoal',
@@ -27,7 +29,9 @@ class JointsCollisionGoal(Goal):
                        dist_threshold_increment_start=1e-2,
                        dist_threshold_increment_end=1e-3,
                        dist_threshold_overwrite:float=None,
-                       dynamic_obstacle_allocation:bool = False):
+                       dynamic_obstacle_allocation:bool = False,
+                       teacher_path:str = None,
+                       env = None):
 
         super().__init__(robot, normalize_rewards, normalize_observations, train, True, add_to_logging, max_steps, continue_after_success)
 
@@ -95,6 +99,8 @@ class JointsCollisionGoal(Goal):
         self.dynamic_obstacle_allocation = dynamic_obstacle_allocation
 
         self.obstacles_info = [] # gets filled by the obstacle sensor with minimum distance to robot PER OBJECT
+
+        self.teacher = PPO.load(teacher_path, env) if teacher_path is not None else None
 
     def get_observation_space_element(self) -> dict:
         if self.add_to_observation_space:
@@ -164,8 +170,13 @@ class JointsCollisionGoal(Goal):
         return self.expReward(min_dist, a= a)
 
     def reward(self, step, action):
-        
         reward = 0
+        if self.teacher is not None:
+            obs = self.robot.world._last_obs
+            obs['obstacleradius_ocr'] = np.zeros((4,50,4))
+            act, state = self.teacher.predict(self.robot.world._last_obs)
+            reward += np.dot(act, action)/np.linalg.norm(act)/np.linalg.norm(action) - 0.5 # cosine similarity
+        
 
         self.out_of_bounds = self._out()
         self.collided = self.robot.world.collision
@@ -198,18 +209,17 @@ class JointsCollisionGoal(Goal):
         if self.collided:
             self.done = True
             reward += self.reward_collision
-        elif (np.abs(self.joints - self.target) < self.distance_threshold).all():
+        elif (np.abs(np.cos(self.joints) - np.cos(self.target)) < self.distance_threshold).all():
             self._steps_within_range += 1
             if self._steps_within_range >= 15:
                 self.done = True
                 self.is_success = True
-            reward += self._steps_within_range * self.reward_success / 5
+            reward += self._steps_within_range * self.reward_success / 15
         elif step > self.max_steps:
             self.done = True
             self.timeout = True
             reward += self.reward_collision / 2
         else:
-            reward -= self._steps_within_range * self.reward_success / 10
             self.done = False
             reward += self.reward_distance_mult * self.distance
         

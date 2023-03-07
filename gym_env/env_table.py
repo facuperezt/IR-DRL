@@ -327,6 +327,7 @@ class ModularDRLTableEnv(gym.Env):
                 'desired_goal' : target_array,
                 }
         else:
+            self.world._last_obs = {**obs_dict, **goal_obs_dict}
             return {**obs_dict, **goal_obs_dict}
 
     def step(self, action):
