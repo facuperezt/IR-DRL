@@ -100,8 +100,6 @@ class JointsCollisionGoal(Goal):
 
         self.obstacles_info = [] # gets filled by the obstacle sensor with minimum distance to robot PER OBJECT
 
-        self.teacher = PPO.load(teacher_path, env) if teacher_path is not None else None
-
     def get_observation_space_element(self) -> dict:
         if self.add_to_observation_space:
             ret = dict()
@@ -170,13 +168,7 @@ class JointsCollisionGoal(Goal):
         return self.expReward(min_dist, a= a)
 
     def reward(self, step, action):
-        reward = 0
-        if self.teacher is not None:
-            obs = self.robot.world._last_obs
-            obs['obstacleradius_ocr'] = np.zeros((4,50,4))
-            act, state = self.teacher.predict(self.robot.world._last_obs)
-            reward += np.dot(act, action)/np.linalg.norm(act)/np.linalg.norm(action) - 0.5 # cosine similarity
-        
+        reward = 0       
 
         self.out_of_bounds = self._out()
         self.collided = self.robot.world.collision
@@ -186,40 +178,46 @@ class JointsCollisionGoal(Goal):
         #     for i in range(1,len(self.past_joints_angles) - 1):
         #         shaking += self._compare_pose_similarity(i)
             # reward -= shaking / (len(self.past_joints_angles))
+        d_dist = (np.linalg.norm(self.past_joints_angles[-2] - self.target) - np.linalg.norm(self.past_joints_angles[-1] - self.target)) / np.linalg.norm(self.first_pos - self.target) * 10
+        reward += d_dist
         self.shaking = shaking
         
-        reward -= np.sum(np.array(action)**2 / (len(action))) / 10
+        action_size = -np.sum(np.array(action)**2 / (len(action))) / 10
+        reward += action_size
 
         max_penalty = 0
         for min_dist, importance in zip(*self.obstacles_info):
-            penalty = self.closeness_penalty(min_dist, importance) * self.reward_collision / 10
-            if penalty > max_penalty:
-                max_penalty = penalty
-        reward -= max_penalty
+            max_penalty -= self.closeness_penalty(min_dist, importance) * self.reward_collision / 10
+            reward += self.closeness_penalty(min_dist, importance) * self.reward_collision / 10
+            # if penalty > max_penalty:
+            #     max_penalty = penalty
+        # reward -= max_penalty
 
         # if len(self.past_joints_angles) >= 2:
         #     reward += 0 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else -1
 
-
+        print(f'{d_dist=}, {action_size=}, {max_penalty=}')
         self.is_success = False
         # reward -= (np.abs(self.joints - self.target) > self.distance_threshold).sum() * 0.1
 
         # reward -= self.distance_threshold/10
+
 
         if self.collided:
             self.done = True
             reward += self.reward_collision
         elif (np.abs(np.cos(self.joints) - np.cos(self.target)) < self.distance_threshold).all():
             self._steps_within_range += 1
-            if self._steps_within_range >= 15:
+            if self._steps_within_range >= 10:
                 self.done = True
                 self.is_success = True
-            reward += self._steps_within_range * self.reward_success / 15
+            reward += self._steps_within_range * self.reward_success / 10
         elif step > self.max_steps:
             self.done = True
             self.timeout = True
             reward += self.reward_collision / 2
         else:
+            reward -= self._steps_within_range * self.reward_success / 10
             self.done = False
             reward += self.reward_distance_mult * self.distance
         
@@ -238,10 +236,11 @@ class JointsCollisionGoal(Goal):
         self.is_done = False
         self.collided = False
         self.out_of_bounds = False
+        self.first_pos = self.robot.joints_sensor.joints_angles
+        self.past_joints_angles = [self.first_pos]
         
         # set the distance threshold according to the success of the training
         if True or self.train: 
-
             # calculate increment
             ratio_start_end = (self.distance_threshold - self.distance_threshold_end) / (self.distance_threshold_start - self.distance_threshold_end)
             increment = (self.distance_threshold_increment_start - self.distance_threshold_increment_end) * ratio_start_end + self.distance_threshold_increment_end

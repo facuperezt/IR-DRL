@@ -1,10 +1,12 @@
-from .dropout_policy import DropoutMultiInputActorCriticPolicy
+from .dropout_policy import DropoutMultiInputActorCriticPolicy, CustomizableFeaturesExtractor
+from .CustomPPO import CustomPPO
+from stable_baselines3.common.policies import MultiInputActorCriticPolicy
 
 class PolicyRegistry:
     _policy_classes = {}
 
     @classmethod
-    def get(cls, policy_type:str):
+    def get(cls, policy_type:str) -> MultiInputActorCriticPolicy:
         try:
             return cls._policy_classes[policy_type]
         except KeyError:
@@ -18,3 +20,5 @@ class PolicyRegistry:
         return inner_wrapper
 
 PolicyRegistry.register('dropout')(DropoutMultiInputActorCriticPolicy)
+PolicyRegistry.register('CustomizableFeaturesExtractor')(CustomizableFeaturesExtractor)
+PolicyRegistry.register('TeacherPPO')(CustomPPO)

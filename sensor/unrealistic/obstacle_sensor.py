@@ -50,7 +50,7 @@ class ObstacleCenterRadius(Sensor):
         for i, sphere in zip(self.obstacles_pos_in_state, self.robot.world.obstacle_objects):
             min_dist = np.inf
             sphere : Sphere
-            closest_joint = sorted(pyb.getClosestPoints(self.robot.object_id, sphere.object_id, 2), key= lambda x: x[8])[:1] # closest joint
+            closest_joint = [link for link in sorted(pyb.getClosestPoints(self.robot.object_id, sphere.object_id, 2), key= lambda x: x[8]) if link[3] != self.robot.base_link_id][:1] # closest joint
             if len(closest_joint) > 0:
                 min_dist = closest_joint[0][8]
                 _closest_point_to_obst = closest_joint[0][5]

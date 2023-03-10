@@ -36,6 +36,8 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.preprocessing import preprocess_obs, is_image_space
 from zennit.rules import Epsilon, Gamma
 from time import sleep
+import custom_policies
+from custom_policies import PolicyRegistry
 
 
 
@@ -50,6 +52,7 @@ if __name__ == "__main__":
             def return_train_env_inner():
                 env_config["env_id"] = i
                 env = ModularDRLTableEnv(env_config)
+                env.teacher = PPO.load(env_config["teacher_path"])
                 return env
             return return_train_env_inner
         
@@ -69,7 +72,7 @@ if __name__ == "__main__":
             elif run_config["recurrent"]:
                 model = RecurrentPPO("MultiInputLstmPolicy", envs, policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], n_steps=run_config["ppo_steps"], batch_size=run_config["batch_size"])
             else:
-                model = PPO("MultiInputPolicy", envs, policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], n_steps=run_config["ppo_steps"], batch_size=run_config["batch_size"])
+                model = PolicyRegistry.get('TeacherPPO')("MultiInputPolicy", envs, policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], n_steps=run_config["ppo_steps"], batch_size=run_config["batch_size"])
             print(model.policy)
         else:
             if run_config["TD3"]:
@@ -77,7 +80,7 @@ if __name__ == "__main__":
             elif run_config["recurrent"]:
                 model = RecurrentPPO.load(run_config["model_path"], env=envs, tensorboard_log=run_config["tensorboard_folder"])
             else:
-                model = PPO.load(run_config["model_path"], env=envs, tensorboard_log=run_config["tensorboard_folder"])
+                model = PolicyRegistry.get('TeacherPPO').load(run_config["model_path"], env=envs, tensorboard_log=run_config["tensorboard_folder"])
             # needs to be set on my pc when loading a model, dont know why, might not be needed on yours
             model.policy.optimizer.param_groups[0]["capturable"] = True
 
@@ -91,14 +94,14 @@ if __name__ == "__main__":
                 model = TD3("MultiInputPolicy", env, replay_buffer_class=HerReplayBuffer, replay_buffer_kwargs=run_config["replay_buffer_kwargs"], policy_kwargs=run_config["custom_policy"], verbose=1, gamma=run_config["gamma"], tensorboard_log=run_config["tensorboard_folder"], gradient_steps=run_config["gradient_steps"], batch_size=run_config["batch_size"])
             else:
                 # no extra case for recurrent model here, this would act exatcly the same way here as a new PPO does
-                model = PPO("MultiInputPolicy", env, policy_kwargs=run_config["custom_policy"], verbose=1)
+                model = PolicyRegistry.get('TeacherPPO')("MultiInputPolicy", env, policy_kwargs=run_config["custom_policy"], verbose=1)
         else:
             if run_config["TD3"]:
                 model = TD3.load(run_config["model_path"], env=env)
             elif run_config["recurrent"]:
                 model = RecurrentPPO.load(run_config["model_path"], env=env)
             else:
-                model = PPO.load(run_config["model_path"], env=env)
+                model = PolicyRegistry.get('TeacherPPO').load(run_config["model_path"], env=env)
 
         #explainer = ExplainPPO(env, model, extractor_bias= 'camera')
         #exp_visualizer = VisualizeExplanations(explainer, type_of_data= 'rgbd')
@@ -118,6 +121,7 @@ if __name__ == "__main__":
                 act, state = model.predict(obs, state=(state if run_config["recurrent"] else None), episode_start=episode_start)
                 obs['obstacleradius_ocr'] = np.zeros_like(obs['obstacleradius_ocr'])
                 obs, reward, done, info = env.step(act)
+                # print(reward)
                 episode_starts = done
                 steps += 1
                 if args.debug:

@@ -1,7 +1,7 @@
 # config that builds the env as Yifan had it
 run:
-  load_model: True  
-  model_path: "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_33000000_steps.zip"  
+  load_model: False  
+  model_path: "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_50000000_steps.zip"  
   train:
     num_envs : 16
     timesteps: 50000000 
@@ -104,7 +104,7 @@ env:
       workspace_boundaries: [-1.5, 1.5, -1.2, 1.2, 1.1, 2]
       fixed_nr_obst: True
       num_static_obstacles: 3
-      num_moving_obstacles: 4
+      num_moving_obstacles: 5
       box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
       sphere_measurements: [0.05, 0.2]
       moving_obstacles_vels: [0.5, 1.5]
