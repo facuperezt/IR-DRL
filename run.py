@@ -52,7 +52,6 @@ if __name__ == "__main__":
             def return_train_env_inner():
                 env_config["env_id"] = i
                 env = ModularDRLTableEnv(env_config)
-                env.teacher = PPO.load(env_config["teacher_path"])
                 return env
             return return_train_env_inner
         
