@@ -196,7 +196,7 @@ class JointsCollisionGoal(Goal):
         # if len(self.past_joints_angles) >= 2:
         #     reward += 0 if np.linalg.norm(self.past_joints_angles[-1] - self.target) < np.linalg.norm(self.past_joints_angles[-2] - self.target) else -1
 
-        print(f'{d_dist=}, {action_size=}, {max_penalty=}')
+        # print(f'{d_dist=}, {action_size=}, {max_penalty=}')
         self.is_success = False
         # reward -= (np.abs(self.joints - self.target) > self.distance_threshold).sum() * 0.1
 
