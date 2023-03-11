@@ -1,7 +1,7 @@
 # config that builds the env as Yifan had it
 run:
-  load_model: True
-  model_path: "models/weights/PPO_100Spheres_proximityWarning_15AtGoal_/model_17000000_steps.zip" 
+  load_model: False
+  model_path: "" 
   train:
     num_envs : 32
     timesteps: 100000000 
