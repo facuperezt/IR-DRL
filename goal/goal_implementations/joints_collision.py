@@ -187,7 +187,7 @@ class JointsCollisionGoal(Goal):
 
         max_penalty = 0
         for min_dist, importance in zip(*self.obstacles_info):
-            max_penalty -= self.closeness_penalty(min_dist, importance) * self.reward_collision / 10
+            max_penalty += self.closeness_penalty(min_dist, importance)
             # reward -= self.closeness_penalty(min_dist, importance) * self.reward_collision / 10
             # if penalty > max_penalty:
             #     max_penalty = penalty
@@ -217,7 +217,7 @@ class JointsCollisionGoal(Goal):
             self.timeout = True
             reward += self.reward_collision / 2
         else:
-            reward -= self._steps_within_range * self.reward_success / 10
+            # reward -= self._steps_within_range * self.reward_success / 10
             self.done = False
             reward += self.reward_distance_mult * self.distance
         
