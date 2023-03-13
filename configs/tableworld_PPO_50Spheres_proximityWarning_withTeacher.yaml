@@ -1,13 +1,13 @@
 # config that builds the env as Yifan had it
 run:
   load_model: False
-  model_path: "" 
+  model_path: ""
   train:
     num_envs : 32
     timesteps: 100000000 
     save_freq : 31250
     save_folder: "./models/weights"  
-    save_name: "PPO_100Spheres_proximityWarning_10AtGoalv1"
+    save_name: "PPO_100Spheres_proximityWarning_10AtGoalv2"
     recurrent: False
     TD3: False
     ppo_steps: 512
@@ -95,7 +95,7 @@ env:
           dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
-          dist_threshold_overwrite: 1
+          dist_threshold_overwrite: "None"
           dynamic_obstacle_allocation: True
           teacher_path : "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_33000000_steps.zip"
 
