@@ -224,7 +224,7 @@ class ModularDRLTableEnv(gym.Env):
         # end execution if max episodes is reached
         if self.max_episodes != -1 and self.episode >= self.max_episodes:
             exit(0)
-
+        self.sensor_times = {}
         # disable rendering for the setup to save time
         #pyb.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 0)
 
@@ -250,7 +250,8 @@ class ModularDRLTableEnv(gym.Env):
 
             # # reset PyBullet
             # pyb.resetSimulation()
-
+            
+            tmp_time = process_time()
             # reset world attributes
             self.world.reset(np.average(self.success_stat))
             while True:
@@ -264,10 +265,12 @@ class ModularDRLTableEnv(gym.Env):
                 else:
                     self.world.collision = False
                     self.world.reset(np.average(self.success_stat))
+            self.sensor_times['world_reset'] = process_time() - tmp_time
 
-
+            tmp_time = process_time()
             # spawn world objects
             self.world.build()
+            self.sensor_times['world_build'] = process_time() - tmp_time
 
             target_states = self.world.create_target_states()
 
@@ -281,21 +284,27 @@ class ModularDRLTableEnv(gym.Env):
         # set all robots to active
         self.active_robots = [True for robot in self.robots]
 
+        tmp_time = process_time()
         # reset the sensors to start settings
         for sensor in self.sensors:
             sensor.reset()
-
+        self.sensor_times['sensor_reset'] = process_time() - tmp_time
+        
+        tmp_time = process_time()
         # call the goals' update routine and get their metrics, if they exist
         self.goal_metrics = []
         for goal in self.goals:
             self.goal_metrics.append(goal.on_env_reset(np.average(self.success_stat)))
+        self.sensor_times['goal_reset'] = process_time() - tmp_time
 
+        tmp_time = process_time()
         # render non-essential visual stuff
         if self.show_auxillary_geometry_world:
             self.world.build_visual_aux()
         if self.show_auxillary_geometry_goal:
             for goal in self.goals: 
                 goal.build_visual_aux()
+        self.sensor_times['render_aux'] = process_time() - tmp_time
 
         # turn rendering back on
         pyb.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 1)
@@ -338,8 +347,10 @@ class ModularDRLTableEnv(gym.Env):
         # convert to numpy
         action = np.array(action)
         
+        tmp_time = process_time()
         # update world
         self.world.update()
+        self.sensor_times['world_update'] = process_time() - tmp_time
 
         # apply the action to all robots that have to be moved
         action_offset = 0  # the offset at which the ith robot sits in the action array
@@ -359,12 +370,16 @@ class ModularDRLTableEnv(gym.Env):
                     self.sim_time += self.sim_step
             exec_times_cpu.append(exec_time)
 
+        tmp_time = process_time()
         # update the sensor data
         for sensor in self.sensors:
             sensor.update(self.steps_current_episode)
+        self.sensor_times['sensors_update'] = process_time() - tmp_time
 
+        tmp_time = process_time()
         # update the collision model
         self.world.perform_collision_check()
+        self.sensor_times['world_collision_step'] = process_time() - tmp_time
 
         # calculate reward and get termination conditions
         rewards = []
@@ -373,6 +388,7 @@ class ModularDRLTableEnv(gym.Env):
         timeouts = []
         oobs = []
         action_offset = 0
+        tmp_time = process_time()
         for idx, robot in enumerate(self.robots):
             goal = robot.goal
             # only go trough calculations if robot has a goal and it is active
@@ -390,6 +406,8 @@ class ModularDRLTableEnv(gym.Env):
                 timeouts.append(reward_info[3])
                 oobs.append(reward_info[4])
             action_offset += self.action_space_dims[idx]
+        self.sensor_times['robot_action_rewards'] = process_time() - tmp_time
+
 
         # determine overall env termination condition
         collision = self.world.collision

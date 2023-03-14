@@ -88,7 +88,7 @@ env:
         config:
           add_to_logging: True
           continue_after_success: True
-          reward_success: 20
+          reward_success: 200
           reward_collision: -150
           reward_distance_mult: -0.005
           dist_threshold_start: 1.5707963267948966
