@@ -149,12 +149,13 @@ class TableWorld(World):
 
 
     def reset(self, success_rate):
-        self.objects_ids = self.ground_and_table_id
+        del self.objects_ids
+        self.objects_ids = self.ground_and_table_id.copy()
         self.starting_joint_states = []
         self.target_joint_states = []
         for object in self.obstacle_objects:
             pyb.removeBody(object.object_id)
-            del object
+        del self.obstacle_objects
         self.obstacle_objects = []
         # the next three don't need to be reset, so commented out
         #self.robots_in_world = []
