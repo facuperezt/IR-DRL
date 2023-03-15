@@ -7,7 +7,7 @@ run:
     timesteps: 100000000 
     save_freq : 31250
     save_folder: "./models/weights"  
-    save_name: "PPO_100Spheres_proximityWarning_10AtGoalv3"
+    save_name: "PPO_50Spheres_proximityWarning_10AtGoalv4"
     recurrent: False
     TD3: False
     ppo_steps: 512
