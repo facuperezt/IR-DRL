@@ -95,7 +95,7 @@ env:
           dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
-          dist_threshold_overwrite: 0.01
+          dist_threshold_overwrite: "None"
           dynamic_obstacle_allocation: True
           teacher_path : "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_33000000_steps.zip"
 

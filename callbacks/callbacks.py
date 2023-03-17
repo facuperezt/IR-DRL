@@ -69,8 +69,8 @@ class MoreLoggingCustomCallback(BaseCallback):
         return True
 
     def _on_step(self) -> bool:
-        sensor_times_all_envs = self.model.env.get_attr('sensor_times')
-        for i, sensor_times in enumerate(sensor_times_all_envs):
-            for entry, val in sensor_times.items():
-                self.logger.record(f"env_{i}/timings/{entry}", val)
+        # sensor_times_all_envs = self.model.env.get_attr('sensor_times')
+        # for i, sensor_times in enumerate(sensor_times_all_envs):
+        #     for entry, val in sensor_times.items():
+        #         self.logger.record(f"env_{i}/timings/{entry}", val)
         return True
