@@ -70,6 +70,7 @@ class MoreLoggingCustomCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         world_all_envs = self.model.env.get_attr('world')
+        print(world_all_envs)
         for i, world in world_all_envs:
             self.logger.record(f"env_{i}/objects/{world.num_static_objects}")
             self.logger.record(f"env_{i}/objects/{world.num_moving_objects}")
