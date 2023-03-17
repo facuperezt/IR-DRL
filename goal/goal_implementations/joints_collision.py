@@ -246,7 +246,7 @@ class JointsCollisionGoal(Goal):
             ratio_start_end = (self.distance_threshold - self.distance_threshold_end) / (self.distance_threshold_start - self.distance_threshold_end)
             increment = (self.distance_threshold_increment_start - self.distance_threshold_increment_end) * ratio_start_end + self.distance_threshold_increment_end
             if success_rate > 0.9 and self.distance_threshold > self.distance_threshold_end:
-                if self.dynamic_obstacle_allocation and success_rate > 0.95 and self.distance_threshold <= self.distance_threshold_end * 2:
+                if self.dynamic_obstacle_allocation and success_rate > 0.99 and self.distance_threshold <= self.distance_threshold_end:
                     if np.random.rand() < 0.4:
                         self.robot.world.num_static_obstacles += 1
                     else:

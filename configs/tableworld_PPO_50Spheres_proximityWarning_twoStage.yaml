@@ -1,7 +1,7 @@
 # config that builds the env as Yifan had it
 run:
-  load_model: False
-  model_path: ""
+  load_model: True
+  model_path: "models/weights/PPO_50Spheres_proximityWarning_twoStage/model_11000000_steps.zip"
   train:
     num_envs : 32
     timesteps: 100000000 
@@ -57,7 +57,7 @@ run:
     max_episode_length: 512
     online_sampling: True
 env:
-  display_extra: False
+  display_extra: True
   max_steps_per_episode: 512  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1
@@ -95,7 +95,7 @@ env:
           dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
-          dist_threshold_overwrite: "None"
+          dist_threshold_overwrite: 0.05
           dynamic_obstacle_allocation: True
           teacher_path : "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_33000000_steps.zip"
 
