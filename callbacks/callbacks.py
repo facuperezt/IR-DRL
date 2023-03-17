@@ -69,6 +69,10 @@ class MoreLoggingCustomCallback(BaseCallback):
         return True
 
     def _on_step(self) -> bool:
+        world_all_envs = self.model.env.get_attr('world')
+        for i, world in world_all_envs:
+            self.logger.record(f"env_{i}/objects/{world.num_static_objects}")
+            self.logger.record(f"env_{i}/objects/{world.num_moving_objects}")
         # sensor_times_all_envs = self.model.env.get_attr('sensor_times')
         # for i, sensor_times in enumerate(sensor_times_all_envs):
         #     for entry, val in sensor_times.items():
