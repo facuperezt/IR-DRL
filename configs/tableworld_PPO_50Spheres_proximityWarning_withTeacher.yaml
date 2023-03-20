@@ -4,7 +4,7 @@ run:
   # model_path: "models/weights/PPO_50Spheres_proximityWarning_10AtGoal/model_35000000_steps.zip"
   model_path: "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_50000000_steps.zip"
   train:
-    num_envs : 32
+    num_envs : 16
     timesteps: 100000000 
     save_freq : 31250
     save_folder: "./models/weights"  

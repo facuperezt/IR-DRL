@@ -304,7 +304,7 @@ class ModularDRLTableEnv(gym.Env):
         if self.show_auxillary_geometry_goal:
             for goal in self.goals: 
                 goal.build_visual_aux()
-        self.sensor_times['render_aux'] = process_time() - tmp_time
+        self.sensor_times['render_aux'] = [process_time() - tmp_time]
 
         # turn rendering back on
         pyb.configureDebugVisualizer(pyb.COV_ENABLE_RENDERING, 1)
