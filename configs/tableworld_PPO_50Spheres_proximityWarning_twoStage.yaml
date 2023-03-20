@@ -7,7 +7,7 @@ run:
     timesteps: 100000000 
     save_freq : 125000
     save_folder: "./models/weights"  
-    save_name: "PPO_50Spheres_proximityWarning_twoStage"
+    save_name: "PPO_50Spheres_proximityWarning_twoStage_v1"
     recurrent: False
     TD3: False
     ppo_steps: 512
