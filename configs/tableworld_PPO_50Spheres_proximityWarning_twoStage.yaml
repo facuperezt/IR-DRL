@@ -3,9 +3,9 @@ run:
   load_model: True
   model_path: "models/weights/PPO_50Spheres_proximityWarning_twoStage/model_10000000_steps.zip"
   train:
-    num_envs : 8
+    num_envs : 32
     timesteps: 100000000 
-    save_freq : 250000
+    save_freq : 62500
     save_folder: "./models/weights"  
     save_name: "PPO_50Spheres_proximityWarning_twoStage_bootstrapped"
     recurrent: False
