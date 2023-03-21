@@ -1,7 +1,9 @@
 # config that builds the env as Yifan had it
 run:
   load_model: True
-  model_path: "models/weights/PPO_50Spheres_proximityWarning_twoStage/model_10000000_steps.zip"
+  model_path: "models/weights/PPO_50Spheres_proximityWarning_twoStage_bootstrapped/model_18000000_steps.zip"
+  # model_path: "models/weights/PPO_50Spheres_proximityWarning_twoStage/model_10000000_steps.zip"
+  # model_path: "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_50000000_steps.zip" # "models/weights/PPO_50Spheres_proximityWarning_twoStage/model_10000000_steps.zip"
   train:
     num_envs : 32
     timesteps: 100000000 
@@ -13,7 +15,7 @@ run:
     ppo_steps: 512
     gradient_steps: -1  
     batch_size: 2048
-    gamma: 0.98
+    gamma: 0.97
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
       use: "CustomFeaturesExtractor"
@@ -95,7 +97,7 @@ env:
           dist_threshold_end : 0.01
           dist_threshold_increment_start: 0.01
           dist_threshold_increment_end: 0.001
-          dist_threshold_overwrite: "None"
+          dist_threshold_overwrite: 0.15
           dynamic_obstacle_allocation: True
           teacher_path : "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_33000000_steps.zip"
 
