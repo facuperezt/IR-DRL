@@ -105,7 +105,7 @@ env:
     config:
       workspace_boundaries: [-1.5, 1.5, -1.2, 1.2, 1.1, 2]
       fixed_nr_obst: False
-      num_static_obstacles: 3
+      num_static_obstacles: 15
       num_moving_obstacles: 6
       box_measurements: [0.025, 0.075, 0.025, 0.075, 0.00075, 0.00125]
       sphere_measurements: [0.05, 0.2]

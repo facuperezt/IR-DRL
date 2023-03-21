@@ -8,6 +8,7 @@ run:
     save_freq : 30000
     save_folder: "./models/weights"  
     save_name: "PPO_default"
+    TD3: False
     recurrent: False
     ppo_steps: 1024  
     batch_size: 512
@@ -44,6 +45,7 @@ run:
       scale: 1
 
 env:
+  display_extra: False
   max_steps_per_episode: 1024  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1
@@ -78,7 +80,7 @@ env:
               upper_arm: [10, 10]
             indicator: True
       goal:
-        type: "PositionCollision"
+        type: "JointsCollision"
         config:
           add_to_logging: True
           continue_after_success: True

@@ -1,6 +1,6 @@
 # config that builds the env as Yifan had it
 run:
-  load_model: True
+  load_model: False
   model_path: "models/weights/PPO_50Spheres_proximityWarning_twoStage_bootstrapped/model_18000000_steps.zip"
   # model_path: "models/weights/PPO_50Spheres_proximityWarning_twoStage/model_10000000_steps.zip"
   # model_path: "models/weights/PPO_100Spheres_randomizedPlace_finalReward/model_50000000_steps.zip" # "models/weights/PPO_50Spheres_proximityWarning_twoStage/model_10000000_steps.zip"
@@ -9,34 +9,35 @@ run:
     timesteps: 100000000 
     save_freq : 62500
     save_folder: "./models/weights"  
-    save_name: "PPO_50Spheres_proximityWarning_twoStage_bootstrapped"
+    save_name: "PPO_50Spheres_proximityWarning_twoStage_big"
     recurrent: False
     TD3: False
     ppo_steps: 512
     gradient_steps: -1  
     batch_size: 2048
-    gamma: 0.97
+    gamma: 0.99
     tensorboard_folder: "./models/tensorboard_logs"
     custom_policy:
       use: "CustomFeaturesExtractor"
       args:
         linear_sizes:
           - 256
+          - 128
           - 128 
           - 64
         features_dim: 50
       activation_function: "ReLU"  
       layers:
         - value_function:
-          - 128
-          - 64
+          - 256
+          - 512
+          - 256
           - 32
-          - 16
         - policy_function:
-          - 128
-          - 64
+          - 256
+          - 512
+          - 256
           - 32
-          - 16   
       lstm:
         lstm_hidden_size: 512
         n_lstm_layers: 2
@@ -59,7 +60,7 @@ run:
     max_episode_length: 512
     online_sampling: True
 env:
-  display_extra: True
+  display_extra: False
   max_steps_per_episode: 512  
   use_physics_sim: True  # strictly speaking the original code had this at False
   physics_steps_per_env_step: 1

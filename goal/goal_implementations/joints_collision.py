@@ -309,3 +309,47 @@ class JointsCollisionGoal(Goal):
         elif z > self.robot.world.z_max or z < self.robot.world.z_min:
             return True
         return False
+    
+class JointsCollisionKindergartenGoal(JointsCollisionGoal):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.next_update = True
+
+    def on_env_reset(self, success_rate):
+        self.timeout = False
+        self.is_success = False
+        self.is_done = False
+        self.collided = False
+        self.out_of_bounds = False
+        self.first_pos = self.robot.joints_sensor.joints_angles
+        self.past_joints_angles = [self.first_pos]
+        
+        # set the distance threshold according to the success of the training
+        if True or self.train: 
+            # calculate increment
+            ratio_start_end = (self.distance_threshold - self.distance_threshold_end) / (self.distance_threshold_start - self.distance_threshold_end)
+            increment = (self.distance_threshold_increment_start - self.distance_threshold_increment_end) * ratio_start_end + self.distance_threshold_increment_end
+            if success_rate > 0.9 and self.distance_threshold > self.distance_threshold_end:
+                self.next_update = not self.next_update
+                if self.next_update:
+                    if np.random.rand() < 0.4:
+                        self.robot.world.num_static_obstacles += 1
+                    else:
+                        self.robot.world.num_moving_obstacles += 1
+                else:
+                    self.distance_threshold -= increment 
+            elif success_rate < 0.1 and self.distance_threshold < self.distance_threshold_start:
+                # elf.next_update = not self.next_update
+                if not self.next_update:
+                    if np.random.rand() < 0.4:
+                        self.robot.world.num_static_obstacles = max(0, self.robot.world.num_static_obstacles - 1)
+                    else:
+                        self.robot.world.num_moving_obstacles = max(0, self.robot.world.num_moving_obstacles - 1)
+                else:
+                    self.distance_threshold += increment/10  # upwards movement should be slower
+            if self.distance_threshold > self.distance_threshold_start:
+                self.distance_threshold = self.distance_threshold_start
+            if self.distance_threshold < self.distance_threshold_end:
+                self.distance_threshold = self.distance_threshold_end
+
+        return self.metric_name, self.distance_threshold, True, True
